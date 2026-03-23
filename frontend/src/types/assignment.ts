@@ -4,6 +4,8 @@ export type Question = {
   text: string;
   difficulty: Difficulty;
   marks: number;
+  sourceLine: string;
+  options?: string[];
 };
 
 export type AssignmentSection = {
@@ -22,6 +24,12 @@ export type AssignmentQuestionType = {
   marks: number;
 };
 
+export type UploadedDocumentPayload = {
+  name: string;
+  mimeType: string;
+  dataUrl: string;
+};
+
 export type CreateAssignmentPayload = {
   schoolName: string;
   subjectName: string;
@@ -32,11 +40,21 @@ export type CreateAssignmentPayload = {
   numberOfQuestions: number;
   marks: number;
   instructions: string;
+  uploadedFile?: UploadedDocumentPayload;
+};
+
+export type DashboardAssignment = {
+  id: string;
+  title: string;
+  assignedOn: string;
+  dueDate: string;
+  status?: string;
 };
 
 export type AssignmentDoneEvent = {
   assignmentId: string;
-  result: AssignmentResult;
+  result?: AssignmentResult;
+  errorMessage?: string;
   schoolName: string;
   subjectName: string;
   className: string;

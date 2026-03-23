@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo } from "react";
 import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
 import { Sidebar } from "@/components/common/Sidebar";
@@ -18,7 +18,8 @@ type AssignmentOutputPageProps = {
   result: AssignmentResult | null;
   isLoading?: boolean;
   bannerText?: string;
-  onCreateNew?: () => void;
+  errorMessage?: string | null;
+  onRegenerate?: () => void;
 };
 
 type AnswerKeyItem = {
@@ -26,18 +27,15 @@ type AnswerKeyItem = {
   text: string;
 };
 
-
 export function AssignmentOutputPage({
   result,
   isLoading = false,
-  bannerText = "Here are customized Question Paper",
-  onCreateNew,
+  bannerText = "Here is your source-backed question paper",
+  errorMessage = null,
+  onRegenerate,
 }: AssignmentOutputPageProps) {
   const router = useRouter();
-  const { 
-    schoolName, setHeader, 
-    subjectName, className, timeAllowed 
-  } = useAssignmentStore();
+  const { schoolName, setHeader, subjectName, className, timeAllowed } = useAssignmentStore();
 
   const setSchoolName = (val: string) => setHeader({ schoolName: val, subjectName, className, timeAllowed });
   const setSubjectName = (val: string) => setHeader({ schoolName, subjectName: val, className, timeAllowed });
@@ -49,17 +47,16 @@ export function AssignmentOutputPage({
 
     return result.sections.reduce(
       (sectionTotal, section) =>
-        sectionTotal +
-        section.questions.reduce((questionTotal, question) => questionTotal + question.marks, 0),
+        sectionTotal + section.questions.reduce((questionTotal, question) => questionTotal + question.marks, 0),
       0
     );
   }, [result]);
 
   const answerKey = useMemo(() => buildAnswerKey(result), [result]);
 
-  const handleCreateNew = () => {
-    if (onCreateNew) {
-      onCreateNew();
+  const handleRegenerate = () => {
+    if (onRegenerate) {
+      onRegenerate();
       return;
     }
 
@@ -67,7 +64,7 @@ export function AssignmentOutputPage({
   };
 
   const handleBack = () => {
-    router.back();
+    router.push("/assignments");
   };
 
   return (
@@ -83,7 +80,7 @@ export function AssignmentOutputPage({
           </div>
 
           <div className="hidden md:block">
-            <DesktopTopBar onBack={handleBack} onCreateNew={handleCreateNew} />
+            <DesktopTopBar onBack={handleBack} onRegenerate={handleRegenerate} />
           </div>
 
           <div className="h-full overflow-y-auto px-[12px] pb-[14px] pt-[8px] md:px-[12px] md:pb-[18px] md:pt-[6px]">
@@ -93,10 +90,24 @@ export function AssignmentOutputPage({
                   {bannerText}
                 </p>
 
-                <div className="mt-[12px]">
+                <div className="mt-[12px] flex flex-wrap items-center gap-[10px]">
                   <PDFButton />
+                  <button type="button" onClick={handleRegenerate} className="inline-flex h-[34px] items-center justify-center rounded-full border border-white/20 bg-white/8 px-[16px] text-[11px] font-medium text-white transition hover:bg-white/14">
+                    Regenerate
+                  </button>
+                  {!isLoading ? (
+                    <button type="button" onClick={handleBack} className="inline-flex h-[34px] items-center justify-center rounded-full border border-white/20 bg-white px-[16px] text-[11px] font-medium text-[#2f2f2f] transition hover:bg-white/92">
+                      Back to Dashboard
+                    </button>
+                  ) : null}
                 </div>
               </div>
+
+              {errorMessage ? (
+                <div className="mt-[12px] rounded-[18px] border border-[#fecaca] bg-[#fff1f2] px-[16px] py-[14px] text-[12px] text-[#9f1239] shadow-[0_12px_26px_rgba(127,29,29,0.08)] md:text-[13px]">
+                  {errorMessage}
+                </div>
+              ) : null}
 
               <div className="mt-[10px] md:mt-[12px]">
                 <ExamPaper
@@ -130,77 +141,42 @@ export function AssignmentOutputPage({
   );
 }
 
-function DesktopTopBar({ onBack, onCreateNew }: { onBack: () => void; onCreateNew: () => void }) {
+function DesktopTopBar({ onBack, onRegenerate }: { onBack: () => void; onRegenerate: () => void }) {
   return (
     <header className="px-[8px] pt-[8px]">
       <div className="flex h-[40px] items-center justify-between rounded-[14px] bg-white/82 px-5 shadow-[0_8px_24px_rgba(15,23,42,0.06)] backdrop-blur-sm">
         <div className="flex items-center gap-3 text-[#a3a3a3]">
-          <button
-            type="button"
-            aria-label="Back"
-            onClick={onBack}
-            className="flex h-6 w-6 items-center justify-center rounded-full bg-white text-[#2e2e2e]"
-          >
+          <button type="button" aria-label="Back" onClick={onBack} className="flex h-6 w-6 items-center justify-center rounded-full bg-white text-[#2e2e2e]">
             <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
-              <path
-                d="M9.75 3.5L5.25 8L9.75 12.5"
-                stroke="currentColor"
-                strokeWidth="1.5"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              />
+              <path d="M9.75 3.5L5.25 8L9.75 12.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
             </svg>
           </button>
 
-          <button
-            type="button"
-            onClick={onCreateNew}
-            className="flex items-center gap-[5px] text-[12px] font-medium tracking-[-0.02em] text-[#b1b1b1]"
-          >
+          <button type="button" onClick={onRegenerate} className="flex items-center gap-[5px] text-[12px] font-medium tracking-[-0.02em] text-[#4b5563]">
             <svg width="12" height="12" viewBox="0 0 14 14" fill="none" aria-hidden="true">
-              <path d="M7 2.75V11.25" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" />
-              <path d="M2.75 7H11.25" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" />
+              <path d="M11.3 4.8A4.75 4.75 0 1 0 12 7" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" />
+              <path d="M10.3 2.85H12.35V4.9" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" />
             </svg>
-            <span>Create New</span>
+            <span>Regenerate</span>
           </button>
         </div>
 
         <div className="flex items-center gap-5 text-[#2d2d2d]">
-          <button
-            type="button"
-            aria-label="Notifications"
-            className="relative flex h-5 w-5 items-center justify-center"
-          >
+          <button type="button" aria-label="Notifications" className="relative flex h-5 w-5 items-center justify-center">
             <svg width="17" height="17" viewBox="0 0 20 20" fill="none" aria-hidden="true">
-              <path
-                d="M10 3.25C7.92893 3.25 6.25 4.92893 6.25 7V8.81258C6.25 9.5667 5.95662 10.2912 5.43198 10.8352L4.75 11.5427V12.25H15.25V11.5427L14.568 10.8352C14.0434 10.2912 13.75 9.5667 13.75 8.81258V7C13.75 4.92893 12.0711 3.25 10 3.25Z"
-                stroke="currentColor"
-                strokeWidth="1.4"
-                strokeLinejoin="round"
-              />
-              <path
-                d="M8.25 14.25C8.47009 14.876 9.07006 15.325 9.775 15.325H10.225C10.9299 15.325 11.5299 14.876 11.75 14.25"
-                stroke="currentColor"
-                strokeWidth="1.4"
-                strokeLinecap="round"
-              />
+              <path d="M10 3.25C7.92893 3.25 6.25 4.92893 6.25 7V8.81258C6.25 9.5667 5.95662 10.2912 5.43198 10.8352L4.75 11.5427V12.25H15.25V11.5427L14.568 10.8352C14.0434 10.2912 13.75 9.5667 13.75 8.81258V7C13.75 4.92893 12.0711 3.25 10 3.25Z" stroke="currentColor" strokeWidth="1.4" strokeLinejoin="round" />
+              <path d="M8.25 14.25C8.47009 14.876 9.07006 15.325 9.775 15.325H10.225C10.9299 15.325 11.5299 14.876 11.75 14.25" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
             </svg>
             <span className="absolute -right-[1px] top-0 h-[6px] w-[6px] rounded-full bg-[#ff5c2d]" />
           </button>
 
           <button type="button" className="flex items-center gap-[10px] text-[13px] font-medium">
             <span className="flex h-[25px] w-[25px] items-center justify-center overflow-hidden rounded-full bg-[#f4d9be] text-[14px]">
-              🧑🏽
+              U
             </span>
-            <span>John Doe</span>
+            <span>User</span>
             <svg width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden="true">
-              <path
-                d="M4 6L8 10L12 6"
-                stroke="currentColor"
-                strokeWidth="1.5"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              />
+              <path d="M4 6L8 10L12 6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
             </svg>
           </button>
         </div>
@@ -221,11 +197,10 @@ function buildAnswerKey(result: AssignmentResult | null): AnswerKeyItem[] {
 }
 
 function createAnswerKeyText(question: Question, sectionTitle: string, position: number) {
-  const normalized = question.text.replace(/\s+/g, " ").trim();
-  const topic = normalized.replace(/^[\d.)\s-]+/, "").replace(/\?+$/, "");
   const difficultyLabel = getDifficultyLabel(question.difficulty);
+  const source = question.sourceLine.replace(/\s+/g, " ").trim();
 
-  return `${sectionTitle} ${position}: ${difficultyLabel} response should clearly address ${topic.toLowerCase()} and be completed within ${question.marks} mark${question.marks === 1 ? "" : "s"}.`;
+  return `${sectionTitle} ${position}: ${difficultyLabel} answer should be supported by the source line "${source}" and fit within ${question.marks} mark${question.marks === 1 ? "" : "s"}.`;
 }
 
 function getDifficultyLabel(difficulty: string) {

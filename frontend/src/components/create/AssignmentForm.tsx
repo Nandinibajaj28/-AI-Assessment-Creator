@@ -1,18 +1,22 @@
 "use client";
 
-import type { FormEvent, ReactNode } from "react";
+import type { ChangeEvent, FormEvent, ReactNode } from "react";
 import { useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { FooterButtons } from "@/components/create/FooterButtons";
 import { CalendarIcon, PlusIcon } from "@/components/create/icons";
 import { QuestionRow } from "@/components/create/QuestionRow";
-import { Sidebar } from "@/components/create/Sidebar";
 import { Summary } from "@/components/create/Summary";
 import { TopBar } from "@/components/create/TopBar";
 import { UploadBox } from "@/components/create/UploadBox";
-import { createAssignment } from "@/lib/api";
+import { createAssignment } from "@/services/api";
 import { useAssignmentStore } from "@/store/assignment.store";
-import { AssignmentQuestionType, CreateAssignmentPayload } from "@/types/assignment";
+import {
+  AssignmentQuestionType,
+  CreateAssignmentPayload,
+  DashboardAssignment,
+  UploadedDocumentPayload,
+} from "@/types/assignment";
 
 const QUESTION_TYPES = [
   { label: "Multiple Choice Questions", value: "Multiple Choice Questions" },
@@ -39,6 +43,7 @@ const INITIAL_ROWS: FormRow[] = [
 ];
 
 const DATE_PLACEHOLDER = "DD-MM-YYYY";
+const MAX_UPLOAD_SIZE = 10 * 1024 * 1024;
 
 const formatDateInput = (value: string) => {
   const digits = value.replace(/\D/g, "").slice(0, 8);
@@ -60,18 +65,22 @@ const isValidDate = (value: string) => {
   return date.getFullYear() === year && date.getMonth() === month - 1 && date.getDate() === day;
 };
 
+const isSupportedUpload = (file: File) =>
+  file.type === "application/pdf" || file.type.startsWith("image/");
+
 export function AssignmentForm() {
   const router = useRouter();
   const fileInputRef = useRef<HTMLInputElement | null>(null);
-  const { setAssignmentId, setResult } = useAssignmentStore();
+  const { addAssignment, setAssignmentId, setResult } = useAssignmentStore();
 
   const [dueDate, setDueDate] = useState("");
   const [questionTypes, setQuestionTypes] = useState<FormRow[]>(INITIAL_ROWS);
   const [schoolName, setSchoolName] = useState("");
   const [subjectName, setSubjectName] = useState("");
   const [className, setClassName] = useState("");
-  const [timeAllowed, setTimeAllowed] = useState("45 minutes");
+  const [timeAllowed, setTimeAllowed] = useState("");
   const [instructions, setInstructions] = useState("");
+  const [uploadedFile, setUploadedFile] = useState<UploadedDocumentPayload | null>(null);
   const [errors, setErrors] = useState<FieldErrors>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [nextId, setNextId] = useState(INITIAL_ROWS.length + 1);
@@ -140,12 +149,67 @@ export function AssignmentForm() {
   };
 
   const handleRemoveRow = (id: string) => {
-    setQuestionTypes((current) => (current.length > 1 ? current.filter((questionType) => questionType.id !== id) : current));
+    setQuestionTypes((current) =>
+      current.length > 1 ? current.filter((questionType) => questionType.id !== id) : current
+    );
     setErrors((current) => ({ ...current, submit: undefined }));
   };
 
-  const handleFileChange = () => {
+  const readFileAsDataUrl = (file: File) =>
+    new Promise<string>((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => {
+        if (typeof reader.result === "string") {
+          resolve(reader.result);
+          return;
+        }
+        reject(new Error("Unable to read the selected file."));
+      };
+      reader.onerror = () => reject(new Error("Unable to read the selected file."));
+      reader.readAsDataURL(file);
+    });
+
+  const handleFileChange = async (event: ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
     setErrors((current) => ({ ...current, submit: undefined }));
+
+    if (!file) {
+      setUploadedFile(null);
+      return;
+    }
+
+    if (!isSupportedUpload(file)) {
+      setUploadedFile(null);
+      setErrors((current) => ({
+        ...current,
+        submit: "Upload a PDF, PNG, JPG, JPEG, or WEBP file.",
+      }));
+      return;
+    }
+
+    if (file.size > MAX_UPLOAD_SIZE) {
+      setUploadedFile(null);
+      setErrors((current) => ({
+        ...current,
+        submit: "Please upload a file smaller than 10MB.",
+      }));
+      return;
+    }
+
+    try {
+      const dataUrl = await readFileAsDataUrl(file);
+      setUploadedFile({
+        name: file.name,
+        mimeType: file.type || "application/octet-stream",
+        dataUrl,
+      });
+    } catch {
+      setUploadedFile(null);
+      setErrors((current) => ({
+        ...current,
+        submit: "Unable to read the selected file. Please try another file.",
+      }));
+    }
   };
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
@@ -166,13 +230,18 @@ export function AssignmentForm() {
       })),
       numberOfQuestions: totals.totalQuestions,
       marks: totals.totalMarks,
-      instructions,
+      instructions: instructions.trim(),
+      uploadedFile: uploadedFile ?? undefined,
     };
 
     setIsSubmitting(true);
     setResult(null);
 
     try {
+      if (typeof window !== "undefined") {
+        window.localStorage.setItem("last_assignment_payload", JSON.stringify(payload));
+      }
+
       const response = await createAssignment(payload);
       const { setHeader } = useAssignmentStore.getState();
       setHeader({
@@ -182,6 +251,14 @@ export function AssignmentForm() {
         timeAllowed: payload.timeAllowed,
       });
       setAssignmentId(response.id);
+      const createdAssignment: DashboardAssignment = {
+        id: response.id,
+        title: payload.subjectName.trim() ? `Quiz on ${payload.subjectName.trim()}` : "Quiz on Electricity",
+        assignedOn: new Date().toISOString(),
+        dueDate: payload.dueDate,
+        status: "processing",
+      };
+      addAssignment(createdAssignment);
       router.push(`/assignment/${response.id}`);
     } catch {
       setErrors((current) => ({ ...current, submit: "Unable to create assignment. Please try again." }));
@@ -190,15 +267,8 @@ export function AssignmentForm() {
   };
 
   return (
-    <div className="min-h-screen bg-[radial-gradient(circle_at_top,_rgba(255,255,255,0.92)_0%,_rgba(234,234,234,0.96)_36%,_#d7d7d7_100%)] px-[4px] py-[6px] lg:px-[3px] lg:py-[6px]">
-      <div className="mx-auto max-w-[1440px] lg:flex lg:gap-[12px]">
-        <aside className="hidden lg:block lg:shrink-0">
-          <div className="sticky top-[6px]">
-            <Sidebar />
-          </div>
-        </aside>
-
-        <main className="min-w-0 flex-1">
+    <div className="min-h-[calc(100vh-20px)] rounded-[18px] bg-[radial-gradient(circle_at_top,_rgba(255,255,255,0.92)_0%,_rgba(234,234,234,0.96)_36%,_#d7d7d7_100%)]">
+      <main className="min-w-0 flex-1">
           <TopBar />
 
           <section className="px-[8px] pb-[102px] pt-[10px] lg:px-[14px] lg:pb-[20px] lg:pt-[10px]">
@@ -226,63 +296,32 @@ export function AssignmentForm() {
                 <p className="mt-[3px] text-[10px] text-[#a0a0a0]">Basic information about your assignment</p>
 
                 <div className="mt-[14px]">
-                  <UploadBox fileInputRef={fileInputRef} onChange={handleFileChange} />
+                  <UploadBox fileInputRef={fileInputRef} onChange={handleFileChange} fileName={uploadedFile?.name} />
                 </div>
 
                 <div className="mt-[10px] grid grid-cols-1 gap-[10px] md:grid-cols-2">
                   <div>
                     <label className="mb-[6px] block text-[12px] font-medium text-[#292929]">School Name</label>
-                    <input
-                      type="text"
-                      value={schoolName}
-                      onChange={(e) => setSchoolName(e.target.value)}
-                      placeholder="e.g. Delhi Public School"
-                      className="h-[32px] w-full rounded-full border border-[#e8e8e8] bg-[#f8f8f8] px-[12px] text-[11px] text-[#3a3a3a] outline-none"
-                    />
+                    <input type="text" value={schoolName} onChange={(e) => setSchoolName(e.target.value)} placeholder="e.g. Delhi Public School" className="h-[32px] w-full rounded-full border border-[#e8e8e8] bg-[#f8f8f8] px-[12px] text-[11px] text-[#3a3a3a] outline-none" />
                   </div>
                   <div>
                     <label className="mb-[6px] block text-[12px] font-medium text-[#292929]">Subject</label>
-                    <input
-                      type="text"
-                      value={subjectName}
-                      onChange={(e) => setSubjectName(e.target.value)}
-                      placeholder="e.g. English"
-                      className="h-[32px] w-full rounded-full border border-[#e8e8e8] bg-[#f8f8f8] px-[12px] text-[11px] text-[#3a3a3a] outline-none"
-                    />
+                    <input type="text" value={subjectName} onChange={(e) => setSubjectName(e.target.value)} placeholder="e.g. Science" className="h-[32px] w-full rounded-full border border-[#e8e8e8] bg-[#f8f8f8] px-[12px] text-[11px] text-[#3a3a3a] outline-none" />
                   </div>
                   <div>
                     <label className="mb-[6px] block text-[12px] font-medium text-[#292929]">Class</label>
-                    <input
-                      type="text"
-                      value={className}
-                      onChange={(e) => setClassName(e.target.value)}
-                      placeholder="e.g. 5th"
-                      className="h-[32px] w-full rounded-full border border-[#e8e8e8] bg-[#f8f8f8] px-[12px] text-[11px] text-[#3a3a3a] outline-none"
-                    />
+                    <input type="text" value={className} onChange={(e) => setClassName(e.target.value)} placeholder="e.g. 5th" className="h-[32px] w-full rounded-full border border-[#e8e8e8] bg-[#f8f8f8] px-[12px] text-[11px] text-[#3a3a3a] outline-none" />
                   </div>
                   <div>
                     <label className="mb-[6px] block text-[12px] font-medium text-[#292929]">Time Allowed</label>
-                    <input
-                      type="text"
-                      value={timeAllowed}
-                      onChange={(e) => setTimeAllowed(e.target.value)}
-                      placeholder="e.g. 45 minutes"
-                      className="h-[32px] w-full rounded-full border border-[#e8e8e8] bg-[#f8f8f8] px-[12px] text-[11px] text-[#3a3a3a] outline-none"
-                    />
+                    <input type="text" value={timeAllowed} onChange={(e) => setTimeAllowed(e.target.value)} placeholder="e.g. 45 minutes" className="h-[32px] w-full rounded-full border border-[#e8e8e8] bg-[#f8f8f8] px-[12px] text-[11px] text-[#3a3a3a] outline-none" />
                   </div>
                 </div>
 
                 <div className="mt-[10px]">
                   <label className="mb-[6px] block text-[12px] font-medium text-[#292929]">Due Date</label>
                   <div className="relative">
-                    <input
-                      type="text"
-                      inputMode="numeric"
-                      value={dueDate}
-                      onChange={(event) => handleDateChange(event.target.value)}
-                      placeholder={DATE_PLACEHOLDER}
-                      className="h-[32px] w-full rounded-full border border-[#e8e8e8] bg-[#f8f8f8] pl-[12px] pr-[34px] text-[11px] text-[#3a3a3a] outline-none placeholder:text-[#c0c0c0]"
-                    />
+                    <input type="text" inputMode="numeric" value={dueDate} onChange={(event) => handleDateChange(event.target.value)} placeholder={DATE_PLACEHOLDER} className="h-[32px] w-full rounded-full border border-[#e8e8e8] bg-[#f8f8f8] pl-[12px] pr-[34px] text-[11px] text-[#3a3a3a] outline-none placeholder:text-[#c0c0c0]" />
                     <span className="pointer-events-none absolute inset-y-0 right-[11px] flex items-center text-[#4d4d4d]">
                       <CalendarIcon />
                     </span>
@@ -313,15 +352,9 @@ export function AssignmentForm() {
                     ))}
                   </div>
 
-                  {errors.questionTypes ? (
-                    <p className="mt-[5px] text-[10px] text-[#dc2626]">{errors.questionTypes}</p>
-                  ) : null}
+                  {errors.questionTypes ? <p className="mt-[5px] text-[10px] text-[#dc2626]">{errors.questionTypes}</p> : null}
 
-                  <button
-                    type="button"
-                    onClick={handleAddRow}
-                    className="mt-[10px] inline-flex items-center gap-[8px] text-[11px] font-medium text-[#2f2f2f]"
-                  >
+                  <button type="button" onClick={handleAddRow} className="mt-[10px] inline-flex items-center gap-[8px] text-[11px] font-medium text-[#2f2f2f]">
                     <span className="flex h-[22px] w-[22px] items-center justify-center rounded-full bg-[#2f2f2f] text-white">
                       <PlusIcon />
                     </span>
@@ -337,29 +370,22 @@ export function AssignmentForm() {
                   <label className="mb-[6px] block text-[12px] font-medium text-[#292929]">
                     Additional Information (For better output)
                   </label>
-                  <textarea
-                    rows={4}
-                    value={instructions}
-                    onChange={(event) => setInstructions(event.target.value)}
-                    placeholder="e.g Generate a question paper for 3 hour exam duration."
-                    className="min-h-[76px] w-full rounded-[12px] border border-dashed border-[#dddddd] bg-[#fbfbfb] px-[12px] py-[10px] text-[10px] leading-[1.45] text-[#3c3c3c] outline-none placeholder:text-[#a8a8a8]"
-                  />
+                  <textarea rows={4} value={instructions} onChange={(event) => setInstructions(event.target.value)} placeholder="e.g. Generate only fact-based questions from the uploaded chapter and keep them easy." className="min-h-[76px] w-full rounded-[12px] border border-dashed border-[#dddddd] bg-[#fbfbfb] px-[12px] py-[10px] text-[10px] leading-[1.45] text-[#3c3c3c] outline-none placeholder:text-[#a8a8a8]" />
                 </div>
               </div>
 
               {errors.submit ? <p className="mt-[8px] text-[11px] text-[#dc2626]">{errors.submit}</p> : null}
-              <FooterButtons isSubmitting={isSubmitting} onPrevious={() => router.back()} />
+              <FooterButtons isSubmitting={isSubmitting} onPrevious={() => router.push("/assignments")} />
             </form>
           </section>
-        </main>
-      </div>
+      </main>
 
       <div className="fixed inset-x-0 bottom-0 px-[4px] pb-[4px] lg:hidden">
         <nav className="rounded-[17px] bg-[#1c1c1c] px-[10px] py-[9px] shadow-[0_14px_28px_rgba(0,0,0,0.22)]">
           <div className="grid grid-cols-4">
-            <BottomNavItem label="Home" icon={<GridIcon />} />
-            <BottomNavItem label="My Groups" icon={<PeopleIcon />} active />
-            <BottomNavItem label="Library" icon={<LibraryIcon />} />
+            <BottomNavItem label="Home" icon={<GridIcon />} onClick={() => router.push("/")} />
+            <BottomNavItem label="Assignments" icon={<PeopleIcon />} active onClick={() => router.push("/assignments")} />
+            <BottomNavItem label="Create" icon={<LibraryIcon />} onClick={() => router.push("/create")} />
             <BottomNavItem label="AI Toolkit" icon={<SparkIcon />} />
           </div>
         </nav>
@@ -368,9 +394,9 @@ export function AssignmentForm() {
   );
 }
 
-function BottomNavItem({ icon, label, active = false }: { icon: ReactNode; label: string; active?: boolean }) {
+function BottomNavItem({ icon, label, active = false, onClick }: { icon: ReactNode; label: string; active?: boolean; onClick?: () => void }) {
   return (
-    <button type="button" className="flex flex-col items-center justify-center gap-[2px] py-[2px]">
+    <button type="button" onClick={onClick} className="flex flex-col items-center justify-center gap-[2px] py-[2px]">
       <span className={active ? "text-white" : "text-white/28"}>{icon}</span>
       <span className={active ? "text-[9px] font-medium text-white" : "text-[9px] text-white/28"}>{label}</span>
     </button>
@@ -416,6 +442,3 @@ function SparkIcon() {
     </svg>
   );
 }
-
-
-

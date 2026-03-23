@@ -6,9 +6,10 @@ import { UploadIcon } from "@/components/create/icons";
 type UploadBoxProps = {
   fileInputRef: RefObject<HTMLInputElement | null>;
   onChange: (event: ChangeEvent<HTMLInputElement>) => void;
+  fileName?: string;
 };
 
-export function UploadBox({ fileInputRef, onChange }: UploadBoxProps) {
+export function UploadBox({ fileInputRef, onChange, fileName }: UploadBoxProps) {
   return (
     <section>
       <div className="rounded-[18px] border border-dashed border-[#d6d6d6] bg-white px-4 py-[26px] text-center lg:rounded-[16px] lg:px-6 lg:py-[34px]">
@@ -16,9 +17,9 @@ export function UploadBox({ fileInputRef, onChange }: UploadBoxProps) {
           <UploadIcon />
         </div>
         <p className="mt-[18px] text-[14px] font-medium leading-[1.2] text-[#202020]">
-          Choose a file or drag &amp; drop it here
+          Choose a PDF or image file to generate grounded questions
         </p>
-        <p className="mt-[6px] text-[10px] leading-none text-[#a0a0a0]">JPEG, PNG, upto 10MB</p>
+        <p className="mt-[6px] text-[10px] leading-none text-[#a0a0a0]">PDF, PNG, JPG, JPEG, WEBP up to 10MB</p>
         <button
           type="button"
           onClick={() => fileInputRef.current?.click()}
@@ -26,10 +27,21 @@ export function UploadBox({ fileInputRef, onChange }: UploadBoxProps) {
         >
           Browse Files
         </button>
-        <input ref={fileInputRef} type="file" accept=".jpg,.jpeg,.png" className="hidden" onChange={onChange} />
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept=".pdf,.png,.jpg,.jpeg,.webp"
+          className="hidden"
+          onChange={onChange}
+        />
       </div>
+      {fileName ? (
+        <p className="mt-[9px] text-center text-[10px] leading-[1.35] text-[#5e5e5e]">
+          Selected file: {fileName}
+        </p>
+      ) : null}
       <p className="mt-[9px] text-center text-[10px] leading-[1.35] text-[#9a9a9a]">
-        Upload images of your preferred document/image
+        Upload a chapter image, scanned note, or PDF to generate source-backed questions only.
       </p>
     </section>
   );

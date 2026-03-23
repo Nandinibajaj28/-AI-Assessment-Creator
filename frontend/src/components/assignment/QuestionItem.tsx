@@ -5,40 +5,42 @@ type QuestionItemProps = {
   index: number;
 };
 
+const DIFFICULTY_STYLES: Record<string, string> = {
+  easy: "bg-[#ecfdf3] text-[#166534] border-[#bbf7d0]",
+  medium: "bg-[#fffbeb] text-[#a16207] border-[#fde68a]",
+  hard: "bg-[#fef2f2] text-[#b91c1c] border-[#fecaca]"
+};
+
 export function QuestionItem({ question, index }: QuestionItemProps) {
-  const difficulty = getDifficultyMeta(question.difficulty);
+  const difficultyKey = question.difficulty.toLowerCase();
+  const badgeClass = DIFFICULTY_STYLES[difficultyKey] || DIFFICULTY_STYLES.easy;
 
   return (
-    <li className="text-[12px] leading-[1.85] text-[#373737] md:text-[14px] md:leading-[1.95]">
-      <span className="mr-[6px]">{index}.</span>
-      <span className={`rounded-[999px] px-[6px] py-[2px] text-[11px] font-medium md:text-[12px] ${difficulty.className}`}>
-        [{difficulty.label}]
-      </span>
-      <span className="ml-[6px]">{question.text}</span>
-      <span className="ml-[4px] text-[#474747]">[{question.marks} Marks]</span>
+    <li className="rounded-[16px] border border-[#ececec] bg-[#fcfcfc] px-[14px] py-[12px] text-[12px] leading-[1.85] text-[#373737] md:px-[16px] md:text-[14px] md:leading-[1.95]">
+      <div className="flex flex-wrap items-center gap-[8px]">
+        <span className="font-semibold text-[#202020]">{index}.</span>
+        <span className="flex-1 text-[#2f2f2f]">{question.text}</span>
+        <span className={`inline-flex items-center rounded-full border px-[9px] py-[2px] text-[10px] font-semibold uppercase tracking-[0.08em] ${badgeClass}`}>
+          {question.difficulty}
+        </span>
+        <span className="inline-flex items-center rounded-full bg-[#f3f4f6] px-[9px] py-[2px] text-[10px] font-medium text-[#374151]">
+          {question.marks} mark{question.marks === 1 ? "" : "s"}
+        </span>
+      </div>
+
+      {Array.isArray(question.options) && question.options.length > 0 ? (
+        <ul className="mt-[10px] space-y-[6px] pl-[24px] text-[11px] text-[#4b5563] md:text-[13px]">
+          {question.options.map((option, optionIndex) => (
+            <li key={`${question.text}-${optionIndex}`} className="list-[upper-alpha]">
+              <span>{option}</span>
+            </li>
+          ))}
+        </ul>
+      ) : null}
+
+      <p className="mt-[10px] rounded-[12px] bg-[#f5f7fb] px-[10px] py-[8px] text-[10px] leading-[1.5] text-[#516074] md:text-[11px]">
+        Source line: {question.sourceLine}
+      </p>
     </li>
   );
-}
-
-function getDifficultyMeta(difficulty: string) {
-  const normalized = difficulty.trim().toLowerCase();
-
-  if (normalized === "easy") {
-    return {
-      label: "Easy",
-      className: "bg-[#eef8f1] text-[#4f7f5b]",
-    };
-  }
-
-  if (normalized === "medium" || normalized === "moderate") {
-    return {
-      label: "Moderate",
-      className: "bg-[#faf5e6] text-[#957642]",
-    };
-  }
-
-  return {
-    label: "Challenging",
-    className: "bg-[#fbefee] text-[#a45d57]",
-  };
 }
