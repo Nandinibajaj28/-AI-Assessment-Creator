@@ -5,7 +5,7 @@ import http from "http";
 import { Server } from "socket.io";
 import { connectDB } from "./config/db";
 import assignmentRoutes from "./routes/assignment.routes";
-import { assignmentQueueEvents } from "./queue/assignment.queue";
+import { assignmentQueueEvents } from "./queues/assignment.queue";
 
 dotenv.config();
 
@@ -17,33 +17,31 @@ const app = express();
 const server = http.createServer(app);
 
 export const io = new Server(server, {
-    cors: { origin: "*" }
+  cors: { origin: "*" }
 });
 
 app.use(cors());
 app.use(express.json({ limit: "20mb" }));
 
 app.get("/", (req, res) => {
-    res.send("API Running");
+  res.send("API Running");
 });
 
 app.use("/api/assignment", assignmentRoutes);
 
 assignmentQueueEvents.on("completed", ({ jobId, returnvalue }: { jobId: string; returnvalue: any }) => {
-    console.log(`[QueueEvents] Job ${jobId} completed`);
-    io.emit("assignment_done", returnvalue);
+  console.log(`[QueueEvents] Job ${jobId} completed`);
+  io.emit("assignment_done", returnvalue);
 });
 
 assignmentQueueEvents.on("failed", ({ jobId, failedReason }: { jobId: string; failedReason: string }) => {
-    console.error(`[QueueEvents] Job ${jobId} failed: ${failedReason}`);
+  console.error(`[QueueEvents] Job ${jobId} failed: ${failedReason}`);
 });
 
 assignmentQueueEvents.on("error", (error: Error) => {
-    console.error("[QueueEvents] Queue event error:", error.message);
+  console.error("[QueueEvents] Queue event error:", error.message);
 });
 
 server.listen(PORT, () => {
-    console.log(`Server running on port ${PORT}`);
+  console.log(`Server running on port ${PORT}`);
 });
-// force restart
-

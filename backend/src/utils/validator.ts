@@ -2,7 +2,7 @@ import {
   StrictAssignmentConfig,
   StrictQuestionType,
   normalizeAssignmentConfig
-} from "./prompt.service";
+} from "../services/prompt.service";
 
 export type Difficulty = "easy" | "medium" | "hard";
 

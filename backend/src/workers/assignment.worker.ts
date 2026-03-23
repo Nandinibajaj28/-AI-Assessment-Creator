@@ -46,46 +46,28 @@ const worker = new Worker(
       };
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
-      console.error(`[Worker] Unexpected error while processing assignment ${assignmentId}:`, message);
+      console.error(`[Worker] Generation failed for assignment ${assignmentId}:`, message);
 
-      if (message.toLowerCase().includes("text extraction failed")) {
-        await Assignment.findByIdAndUpdate(String(assignmentId), {
-          status: "failed",
-          errorMessage: message,
-          $unset: { result: 1 }
-        });
-
-        const assignment = await Assignment.findById(String(assignmentId)).lean();
-        return {
-          assignmentId,
-          errorMessage: message,
-          schoolName: assignment?.schoolName || "",
-          subjectName: assignment?.subjectName || "",
-          className: assignment?.className || "",
-          timeAllowed: assignment?.timeAllowed || ""
-        };
-      }
-
-      console.log(`[Worker] Fallback used for assignment ${assignmentId}`);
+      const finalFallback = {
+        ...FALLBACK_RESULT,
+        errorMessage: message
+      };
 
       try {
         await Assignment.findByIdAndUpdate(String(assignmentId), {
           status: "completed",
-          errorMessage: null,
+          errorMessage: message,
           result: FALLBACK_RESULT
         });
       } catch (dbError) {
-        console.error(
-          `[Worker] Failed to persist fallback result for assignment ${assignmentId}:`,
-          dbError instanceof Error ? dbError.message : String(dbError)
-        );
+        console.error(`[Worker] DB update failed:`, dbError);
       }
 
-      console.log(`[Worker] Job completed for assignment ${assignmentId}`);
       const assignment = await Assignment.findById(String(assignmentId)).lean();
       return {
         assignmentId,
         result: FALLBACK_RESULT,
+        errorMessage: message,
         schoolName: assignment?.schoolName || "",
         subjectName: assignment?.subjectName || "",
         className: assignment?.className || "",

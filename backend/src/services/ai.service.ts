@@ -7,7 +7,7 @@ import {
   GeneratedSection,
   validateGeneratedAssignment,
   validateStructure
-} from "./validator";
+} from "../utils/validator";
 
 type AssignmentGenerationInput = AssignmentInput;
 
@@ -530,26 +530,41 @@ export const generateQuestions = async (data: unknown): Promise<GeneratedAssignm
       mimeType: uploadedDocument?.mimeType || "none"
     });
 
-    const extractedText = await extractDocumentText(input);
+    let extractedText = "";
+    try {
+      extractedText = await extractDocumentText(input);
+    } catch (extractionError) {
+      const extractionMessage = toErrorMessage(extractionError);
+      console.warn("[AI] Text extraction failed, proceeding with metadata only:", extractionMessage);
+      // We don't throw anymore. We let it proceed to allow LLM to generate based on subject/class.
+      // We can also inject a hint into the instructions.
+    }
+
     const preparedInput: AssignmentGenerationInput = {
       ...input,
       extractedText
     };
 
     const sourceLines = extractGroundingLines(extractedText);
-    if (uploadedDocument && sourceLines.length === 0) {
-      throw new Error(`${EXTRACTION_FAILURE_PREFIX} no usable source lines were found after extraction.`);
-    }
-
+    
+    // If we have an uploaded document but no source lines (failed extraction or empty file)
+    // We still try to call the LLM, but we acknowledge the grounding will be missing.
     const prompt = buildStrictPrompt(preparedInput);
     const rawResponse = process.env.OPENAI_API_KEY ? await callOpenAI(prompt) : await callOllama(prompt);
+    
     if (!rawResponse) {
       throw new Error("LLM response content was empty");
     }
 
     const config = normalizeAssignmentConfig(preparedInput);
     const parsed = tryParseAssignment(rawResponse, config);
-    const supportedOnly = filterUnsupportedQuestions(parsed, sourceLines);
+    
+    // If extraction was successful, we filter by source lines.
+    // If it failed, sourceLines is empty, so we just use the parsed ones as-is (non-grounded).
+    const supportedOnly = sourceLines.length > 0 
+      ? filterUnsupportedQuestions(parsed, sourceLines)
+      : parsed;
+
     const completed = completeAssignmentWithFallback(supportedOnly, preparedInput, sourceLines);
 
     validateStructure(completed);
@@ -557,10 +572,6 @@ export const generateQuestions = async (data: unknown): Promise<GeneratedAssignm
   } catch (error) {
     const message = toErrorMessage(error);
     console.error("[AI] Grounded generation failed", message);
-
-    if (message.toLowerCase().includes("text extraction failed")) {
-      throw error;
-    }
 
     try {
       const fallback = buildGroundedFallbackAssignment(input);
