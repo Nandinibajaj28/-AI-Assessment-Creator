@@ -1,0 +1,10 @@
+{
+  "name": "assignment-app",
+  "version": "1.0.0",
+  "description": "Full-stack assignment generator",
+  "private": true,
+  "scripts": {
+    "install:all": "npm install && cd backend && npm install && cd ../frontend && npm install",
+    "dev": "npx -y concurrently \"cd backend && npx ts-node-dev src/index.ts\" \"cd backend && npx ts-node-dev src/workers/assignment.worker.ts\" \"cd frontend && npm run dev\""
+  }
+}

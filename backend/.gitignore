@@ -1,2 +1,19 @@
-.env 
-node_modules
+# dependencies
+node_modules/
+/dist
+/build
+
+# env files
+.env
+.env.local
+.env.dev
+.env.prod
+
+# debug
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+
+# misc
+.DS_Store

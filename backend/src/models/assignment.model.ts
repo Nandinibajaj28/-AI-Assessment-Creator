@@ -1,19 +1,35 @@
 import mongoose from "mongoose";
 
-const assignmentSchema = new mongoose.Schema({
-  dueDate: Date,
-  questionTypes: [String],
-  numberOfQuestions: Number,
-  marks: Number,
-  instructions: String,
-
-  status: {
-    type: String,
-    enum: ["pending", "completed"],
-    default: "pending"
+const questionTypeSchema = new mongoose.Schema(
+  {
+    type: { type: String, required: true },
+    count: { type: Number, required: true },
+    marks: { type: Number, required: true }
   },
+  { _id: false }
+);
 
-  result: Object
-}, { timestamps: true });
+const assignmentSchema = new mongoose.Schema(
+  {
+    schoolName: String,
+    subjectName: String,
+    className: String,
+    timeAllowed: String,
+    dueDate: String,
+    questionTypes: [questionTypeSchema],
+    numberOfQuestions: Number,
+    marks: Number,
+    instructions: String,
+
+    status: {
+      type: String,
+      enum: ["pending", "completed"],
+      default: "pending"
+    },
+
+    result: Object
+  },
+  { timestamps: true }
+);
 
 export const Assignment = mongoose.model("Assignment", assignmentSchema);
