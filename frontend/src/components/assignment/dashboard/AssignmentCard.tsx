@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import DropdownMenu from "./DropdownMenu";
+import DropdownMenu from "@/components/assignment/dashboard/DropdownMenu";
 
 type Assignment = {
   id: string;

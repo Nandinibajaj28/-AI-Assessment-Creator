@@ -19,7 +19,7 @@ const primaryItems: SidebarItem[] = [
   { label: "My Library", icon: <LibraryIcon />, badge: "32" },
 ];
 
-export function Sidebar() {
+export function AssignmentSidebar() {
   const pathname = usePathname();
 
   return (

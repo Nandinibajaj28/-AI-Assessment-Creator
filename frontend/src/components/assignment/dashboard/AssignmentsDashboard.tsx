@@ -2,24 +2,13 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import { formatDisplayDate } from "@/lib/format";
 import { getSocket } from "@/lib/socket";
 import { deleteAssignment, getAssignments } from "@/services/api";
-import { useAssignmentStore } from "@/store/assignment.store";
-import AssignmentGrid from "./AssignmentGrid";
-import EmptyState from "./EmptyState";
-import FloatingButton from "./FloatingButton";
-
-function formatDisplayDate(value: string) {
-  if (!value) return "--";
-
-  const parsed = new Date(value);
-  if (Number.isNaN(parsed.getTime())) return value;
-
-  const day = String(parsed.getDate()).padStart(2, "0");
-  const month = String(parsed.getMonth() + 1).padStart(2, "0");
-  const year = parsed.getFullYear();
-  return `${day}-${month}-${year}`;
-}
+import { useAssignmentStore } from "@/store/useAssignmentStore";
+import AssignmentGrid from "@/components/assignment/dashboard/AssignmentGrid";
+import EmptyState from "@/components/assignment/dashboard/EmptyState";
+import FloatingButton from "@/components/assignment/dashboard/FloatingButton";
 
 export default function AssignmentsDashboard() {
   const router = useRouter();

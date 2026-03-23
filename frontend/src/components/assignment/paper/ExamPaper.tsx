@@ -1,6 +1,6 @@
 import { AssignmentResult } from "@/types/assignment";
-import { AnswerKey } from "./AnswerKey";
-import { SectionBlock } from "./SectionBlock";
+import { AnswerKey } from "@/components/assignment/paper/AnswerKey";
+import { SectionBlock } from "@/components/assignment/paper/SectionBlock";
 
 type ExamPaperProps = {
   result: AssignmentResult | null;

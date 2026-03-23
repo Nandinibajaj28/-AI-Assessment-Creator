@@ -1,4 +1,4 @@
-export function DashboardHeader() {
+export function MobileHeader() {
   return (
     <header className="px-[8px] pt-[8px]">
       <div className="flex items-center justify-between rounded-[14px] bg-[#faf9f7] px-[10px] py-[8px] shadow-[0_1px_0_rgba(255,255,255,0.9),0_8px_18px_rgba(15,23,42,0.05)]">

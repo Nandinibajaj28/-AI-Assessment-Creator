@@ -1,17 +1,17 @@
 "use client";
 
-import { ChevronDownIcon, CloseIcon } from "@/components/create/icons";
-import { Stepper } from "@/components/create/Stepper";
+import { ChevronDownIcon, CloseIcon } from "@/components/assignment/shared/AssignmentIcons";
+import { StepperControl } from "@/components/assignment/create/StepperControl";
 
-type QuestionRowValue = {
+type QuestionItemValue = {
   id: string;
   type: string;
   count: number;
   marks: number;
 };
 
-type QuestionRowProps = {
-  value: QuestionRowValue;
+type QuestionItemProps = {
+  value: QuestionItemValue;
   canRemove: boolean;
   options: { label: string; value: string }[];
   onTypeChange: (id: string, type: string) => void;
@@ -19,14 +19,14 @@ type QuestionRowProps = {
   onRemove: (id: string) => void;
 };
 
-export function QuestionRow({
+export function QuestionItem({
   value,
   canRemove,
   options,
   onTypeChange,
   onStep,
   onRemove,
-}: QuestionRowProps) {
+}: QuestionItemProps) {
   return (
     <div className="rounded-[16px] bg-white px-[10px] py-[10px] lg:grid lg:grid-cols-[1.3fr_0.9fr] lg:items-center lg:gap-[12px] lg:rounded-none lg:bg-transparent lg:px-0 lg:py-0">
       <div className="flex items-center gap-[8px]">
@@ -59,13 +59,13 @@ export function QuestionRow({
       </div>
 
       <div className="mt-[8px] grid grid-cols-2 gap-[8px] lg:mt-0">
-        <Stepper
+        <StepperControl
           label="No. of Questions"
           value={value.count}
           onDecrement={() => onStep(value.id, "count", -1)}
           onIncrement={() => onStep(value.id, "count", 1)}
         />
-        <Stepper
+        <StepperControl
           label="Marks"
           value={value.marks}
           onDecrement={() => onStep(value.id, "marks", -1)}

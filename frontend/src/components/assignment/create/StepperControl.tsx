@@ -1,6 +1,6 @@
 "use client";
 
-import { MinusIcon, PlusIcon } from "@/components/create/icons";
+import { MinusIcon, PlusIcon } from "@/components/assignment/shared/AssignmentIcons";
 
 type StepperProps = {
   label: string;
@@ -9,7 +9,7 @@ type StepperProps = {
   onIncrement: () => void;
 };
 
-export function Stepper({ label, value, onDecrement, onIncrement }: StepperProps) {
+export function StepperControl({ label, value, onDecrement, onIncrement }: StepperProps) {
   return (
     <div className="rounded-full bg-white px-[9px] py-[6px] shadow-[inset_0_0_0_1px_rgba(229,229,229,1)]">
       <div className="mb-[3px] text-center text-[10px] font-medium leading-none text-[#666666] lg:mb-0 lg:text-left">

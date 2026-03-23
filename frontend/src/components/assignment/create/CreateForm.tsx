@@ -3,14 +3,18 @@
 import type { ChangeEvent, FormEvent, ReactNode } from "react";
 import { useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { FooterButtons } from "@/components/create/FooterButtons";
-import { CalendarIcon, PlusIcon } from "@/components/create/icons";
-import { QuestionRow } from "@/components/create/QuestionRow";
-import { Summary } from "@/components/create/Summary";
-import { TopBar } from "@/components/create/TopBar";
-import { UploadBox } from "@/components/create/UploadBox";
+import { Button } from "@/components/ui/Button";
+import { Input } from "@/components/ui/Input";
+import { CreateFormFooter } from "@/components/assignment/create/CreateFormFooter";
+import { CalendarIcon, PlusIcon } from "@/components/assignment/shared/AssignmentIcons";
+import { QuestionItem } from "@/components/assignment/create/QuestionItem";
+import { CreateSummary } from "@/components/assignment/create/CreateSummary";
+import { CreateFormHeader } from "@/components/assignment/create/CreateFormHeader";
+import { UploadBox } from "@/components/assignment/create/UploadBox";
+import { isValidDate, isSupportedUpload } from "@/lib/helpers";
+import { formatDateInput } from "@/lib/format";
 import { createAssignment } from "@/services/api";
-import { useAssignmentStore } from "@/store/assignment.store";
+import { useAssignmentStore } from "@/store/useAssignmentStore";
 import {
   AssignmentQuestionType,
   CreateAssignmentPayload,
@@ -45,30 +49,7 @@ const INITIAL_ROWS: FormRow[] = [
 const DATE_PLACEHOLDER = "DD-MM-YYYY";
 const MAX_UPLOAD_SIZE = 10 * 1024 * 1024;
 
-const formatDateInput = (value: string) => {
-  const digits = value.replace(/\D/g, "").slice(0, 8);
-
-  if (digits.length <= 2) return digits;
-  if (digits.length <= 4) return `${digits.slice(0, 2)}-${digits.slice(2)}`;
-  return `${digits.slice(0, 2)}-${digits.slice(2, 4)}-${digits.slice(4)}`;
-};
-
-const isValidDate = (value: string) => {
-  if (!/^\d{2}-\d{2}-\d{4}$/.test(value)) return false;
-
-  const [dayString, monthString, yearString] = value.split("-");
-  const day = Number(dayString);
-  const month = Number(monthString);
-  const year = Number(yearString);
-  const date = new Date(year, month - 1, day);
-
-  return date.getFullYear() === year && date.getMonth() === month - 1 && date.getDate() === day;
-};
-
-const isSupportedUpload = (file: File) =>
-  file.type === "application/pdf" || file.type.startsWith("image/");
-
-export function AssignmentForm() {
+export function CreateForm() {
   const router = useRouter();
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const { addAssignment, setAssignmentId, setResult } = useAssignmentStore();
@@ -269,115 +250,115 @@ export function AssignmentForm() {
   return (
     <div className="min-h-[calc(100vh-20px)] rounded-[18px] bg-[radial-gradient(circle_at_top,_rgba(255,255,255,0.92)_0%,_rgba(234,234,234,0.96)_36%,_#d7d7d7_100%)]">
       <main className="min-w-0 flex-1">
-          <TopBar />
+        <CreateFormHeader />
 
-          <section className="px-[8px] pb-[102px] pt-[10px] lg:px-[14px] lg:pb-[20px] lg:pt-[10px]">
-            <div className="lg:pl-[2px]">
-              <div className="hidden lg:block">
-                <div className="flex items-start gap-[8px]">
-                  <span className="mt-[4px] h-[8px] w-[8px] rounded-full bg-[#60d98a] shadow-[0_0_0_2px_rgba(96,217,138,0.2)]" />
-                  <div>
-                    <h1 className="text-[21px] font-semibold leading-none text-[#2a2a2a]">Create Assignment</h1>
-                    <p className="mt-[4px] text-[11px] leading-none text-[#adadad]">
-                      Set up a new assignment for your students
-                    </p>
-                  </div>
+        <section className="px-[8px] pb-[102px] pt-[10px] lg:px-[14px] lg:pb-[20px] lg:pt-[10px]">
+          <div className="lg:pl-[2px]">
+            <div className="hidden lg:block">
+              <div className="flex items-start gap-[8px]">
+                <span className="mt-[4px] h-[8px] w-[8px] rounded-full bg-[#60d98a] shadow-[0_0_0_2px_rgba(96,217,138,0.2)]" />
+                <div>
+                  <h1 className="text-[21px] font-semibold leading-none text-[#2a2a2a]">Create Assignment</h1>
+                  <p className="mt-[4px] text-[11px] leading-none text-[#adadad]">
+                    Set up a new assignment for your students
+                  </p>
                 </div>
-              </div>
-
-              <div className="mt-[12px] h-[3px] rounded-full bg-[#d6d6d6] lg:mt-[14px] lg:max-w-[492px]">
-                <div className="h-full w-[47%] rounded-full bg-[#5e5e5e]" />
               </div>
             </div>
 
-            <form onSubmit={handleSubmit} className="mx-auto mt-[16px] max-w-[420px] lg:mt-[18px] lg:max-w-[628px]">
-              <div className="rounded-[22px] bg-[#f9f9f9] px-[12px] py-[14px] shadow-[0_18px_40px_rgba(72,72,72,0.08)] lg:px-[18px] lg:py-[14px]">
-                <h2 className="text-[15px] font-semibold text-[#2b2b2b]">Assignment Details</h2>
-                <p className="mt-[3px] text-[10px] text-[#a0a0a0]">Basic information about your assignment</p>
+            <div className="mt-[12px] h-[3px] rounded-full bg-[#d6d6d6] lg:mt-[14px] lg:max-w-[492px]">
+              <div className="h-full w-[47%] rounded-full bg-[#5e5e5e]" />
+            </div>
+          </div>
 
-                <div className="mt-[14px]">
-                  <UploadBox fileInputRef={fileInputRef} onChange={handleFileChange} fileName={uploadedFile?.name} />
+          <form onSubmit={handleSubmit} className="mx-auto mt-[16px] max-w-[420px] lg:mt-[18px] lg:max-w-[628px]">
+            <div className="rounded-[22px] bg-[#f9f9f9] px-[12px] py-[14px] shadow-[0_18px_40px_rgba(72,72,72,0.08)] lg:px-[18px] lg:py-[14px]">
+              <h2 className="text-[15px] font-semibold text-[#2b2b2b]">Assignment Details</h2>
+              <p className="mt-[3px] text-[10px] text-[#a0a0a0]">Basic information about your assignment</p>
+
+              <div className="mt-[14px]">
+                <UploadBox fileInputRef={fileInputRef} onChange={handleFileChange} fileName={uploadedFile?.name} />
+              </div>
+
+              <div className="mt-[10px] grid grid-cols-1 gap-[10px] md:grid-cols-2">
+                <div>
+                  <label className="mb-[6px] block text-[12px] font-medium text-[#292929]">School Name</label>
+                  <Input type="text" value={schoolName} onChange={(e) => setSchoolName(e.target.value)} placeholder="e.g. Delhi Public School" />
                 </div>
-
-                <div className="mt-[10px] grid grid-cols-1 gap-[10px] md:grid-cols-2">
-                  <div>
-                    <label className="mb-[6px] block text-[12px] font-medium text-[#292929]">School Name</label>
-                    <input type="text" value={schoolName} onChange={(e) => setSchoolName(e.target.value)} placeholder="e.g. Delhi Public School" className="h-[32px] w-full rounded-full border border-[#e8e8e8] bg-[#f8f8f8] px-[12px] text-[11px] text-[#3a3a3a] outline-none" />
-                  </div>
-                  <div>
-                    <label className="mb-[6px] block text-[12px] font-medium text-[#292929]">Subject</label>
-                    <input type="text" value={subjectName} onChange={(e) => setSubjectName(e.target.value)} placeholder="e.g. Science" className="h-[32px] w-full rounded-full border border-[#e8e8e8] bg-[#f8f8f8] px-[12px] text-[11px] text-[#3a3a3a] outline-none" />
-                  </div>
-                  <div>
-                    <label className="mb-[6px] block text-[12px] font-medium text-[#292929]">Class</label>
-                    <input type="text" value={className} onChange={(e) => setClassName(e.target.value)} placeholder="e.g. 5th" className="h-[32px] w-full rounded-full border border-[#e8e8e8] bg-[#f8f8f8] px-[12px] text-[11px] text-[#3a3a3a] outline-none" />
-                  </div>
-                  <div>
-                    <label className="mb-[6px] block text-[12px] font-medium text-[#292929]">Time Allowed</label>
-                    <input type="text" value={timeAllowed} onChange={(e) => setTimeAllowed(e.target.value)} placeholder="e.g. 45 minutes" className="h-[32px] w-full rounded-full border border-[#e8e8e8] bg-[#f8f8f8] px-[12px] text-[11px] text-[#3a3a3a] outline-none" />
-                  </div>
+                <div>
+                  <label className="mb-[6px] block text-[12px] font-medium text-[#292929]">Subject</label>
+                  <Input type="text" value={subjectName} onChange={(e) => setSubjectName(e.target.value)} placeholder="e.g. Science" />
                 </div>
-
-                <div className="mt-[10px]">
-                  <label className="mb-[6px] block text-[12px] font-medium text-[#292929]">Due Date</label>
-                  <div className="relative">
-                    <input type="text" inputMode="numeric" value={dueDate} onChange={(event) => handleDateChange(event.target.value)} placeholder={DATE_PLACEHOLDER} className="h-[32px] w-full rounded-full border border-[#e8e8e8] bg-[#f8f8f8] pl-[12px] pr-[34px] text-[11px] text-[#3a3a3a] outline-none placeholder:text-[#c0c0c0]" />
-                    <span className="pointer-events-none absolute inset-y-0 right-[11px] flex items-center text-[#4d4d4d]">
-                      <CalendarIcon />
-                    </span>
-                  </div>
-                  {errors.dueDate ? <p className="mt-[5px] text-[10px] text-[#dc2626]">{errors.dueDate}</p> : null}
+                <div>
+                  <label className="mb-[6px] block text-[12px] font-medium text-[#292929]">Class</label>
+                  <Input type="text" value={className} onChange={(e) => setClassName(e.target.value)} placeholder="e.g. 5th" />
                 </div>
-
-                <div className="mt-[10px]">
-                  <div className="mb-[6px] lg:grid lg:grid-cols-[1.3fr_0.9fr] lg:gap-[12px]">
-                    <p className="text-[12px] font-medium text-[#292929]">Question Type</p>
-                    <div className="hidden grid-cols-2 gap-[8px] lg:grid">
-                      <p className="text-center text-[10px] text-[#5e5e5e]">No. of Questions</p>
-                      <p className="text-center text-[10px] text-[#5e5e5e]">Marks</p>
-                    </div>
-                  </div>
-
-                  <div className="space-y-[8px]">
-                    {questionTypes.map((questionType) => (
-                      <QuestionRow
-                        key={questionType.id}
-                        value={questionType}
-                        canRemove={questionTypes.length > 1}
-                        options={QUESTION_TYPES}
-                        onTypeChange={handleTypeChange}
-                        onStep={handleStep}
-                        onRemove={handleRemoveRow}
-                      />
-                    ))}
-                  </div>
-
-                  {errors.questionTypes ? <p className="mt-[5px] text-[10px] text-[#dc2626]">{errors.questionTypes}</p> : null}
-
-                  <button type="button" onClick={handleAddRow} className="mt-[10px] inline-flex items-center gap-[8px] text-[11px] font-medium text-[#2f2f2f]">
-                    <span className="flex h-[22px] w-[22px] items-center justify-center rounded-full bg-[#2f2f2f] text-white">
-                      <PlusIcon />
-                    </span>
-                    <span>Add Question Type</span>
-                  </button>
-                </div>
-
-                <div className="mt-[12px] flex justify-end">
-                  <Summary totalQuestions={totals.totalQuestions} totalMarks={totals.totalMarks} />
-                </div>
-
-                <div className="mt-[10px]">
-                  <label className="mb-[6px] block text-[12px] font-medium text-[#292929]">
-                    Additional Information (For better output)
-                  </label>
-                  <textarea rows={4} value={instructions} onChange={(event) => setInstructions(event.target.value)} placeholder="e.g. Generate only fact-based questions from the uploaded chapter and keep them easy." className="min-h-[76px] w-full rounded-[12px] border border-dashed border-[#dddddd] bg-[#fbfbfb] px-[12px] py-[10px] text-[10px] leading-[1.45] text-[#3c3c3c] outline-none placeholder:text-[#a8a8a8]" />
+                <div>
+                  <label className="mb-[6px] block text-[12px] font-medium text-[#292929]">Time Allowed</label>
+                  <Input type="text" value={timeAllowed} onChange={(e) => setTimeAllowed(e.target.value)} placeholder="e.g. 45 minutes" />
                 </div>
               </div>
 
-              {errors.submit ? <p className="mt-[8px] text-[11px] text-[#dc2626]">{errors.submit}</p> : null}
-              <FooterButtons isSubmitting={isSubmitting} onPrevious={() => router.push("/assignments")} />
-            </form>
-          </section>
+              <div className="mt-[10px]">
+                <label className="mb-[6px] block text-[12px] font-medium text-[#292929]">Due Date</label>
+                <div className="relative">
+                  <Input type="text" inputMode="numeric" value={dueDate} onChange={(event) => handleDateChange(event.target.value)} placeholder={DATE_PLACEHOLDER} className="pl-[12px] pr-[34px]" />
+                  <span className="pointer-events-none absolute inset-y-0 right-[11px] flex items-center text-[#4d4d4d]">
+                    <CalendarIcon />
+                  </span>
+                </div>
+                {errors.dueDate ? <p className="mt-[5px] text-[10px] text-[#dc2626]">{errors.dueDate}</p> : null}
+              </div>
+
+              <div className="mt-[10px]">
+                <div className="mb-[6px] lg:grid lg:grid-cols-[1.3fr_0.9fr] lg:gap-[12px]">
+                  <p className="text-[12px] font-medium text-[#292929]">Question Type</p>
+                  <div className="hidden grid-cols-2 gap-[8px] lg:grid">
+                    <p className="text-center text-[10px] text-[#5e5e5e]">No. of Questions</p>
+                    <p className="text-center text-[10px] text-[#5e5e5e]">Marks</p>
+                  </div>
+                </div>
+
+                <div className="space-y-[8px]">
+                  {questionTypes.map((questionType) => (
+                    <QuestionItem
+                      key={questionType.id}
+                      value={questionType}
+                      canRemove={questionTypes.length > 1}
+                      options={QUESTION_TYPES}
+                      onTypeChange={handleTypeChange}
+                      onStep={handleStep}
+                      onRemove={handleRemoveRow}
+                    />
+                  ))}
+                </div>
+
+                {errors.questionTypes ? <p className="mt-[5px] text-[10px] text-[#dc2626]">{errors.questionTypes}</p> : null}
+
+                <Button type="button" variant="ghost" onClick={handleAddRow} className="mt-[10px] inline-flex items-center gap-[8px] text-[11px] font-medium text-[#2f2f2f]">
+                  <span className="flex h-[22px] w-[22px] items-center justify-center rounded-full bg-[#2f2f2f] text-white">
+                    <PlusIcon />
+                  </span>
+                  <span>Add Question Type</span>
+                </Button>
+              </div>
+
+              <div className="mt-[12px] flex justify-end">
+                <CreateSummary totalQuestions={totals.totalQuestions} totalMarks={totals.totalMarks} />
+              </div>
+
+              <div className="mt-[10px]">
+                <label className="mb-[6px] block text-[12px] font-medium text-[#292929]">
+                  Additional Information (For better output)
+                </label>
+                <textarea rows={4} value={instructions} onChange={(event) => setInstructions(event.target.value)} placeholder="e.g. Generate only fact-based questions from the uploaded chapter and keep them easy." className="min-h-[76px] w-full rounded-[12px] border border-dashed border-[#dddddd] bg-[#fbfbfb] px-[12px] py-[10px] text-[10px] leading-[1.45] text-[#3c3c3c] outline-none placeholder:text-[#a8a8a8]" />
+              </div>
+            </div>
+
+            {errors.submit ? <p className="mt-[8px] text-[11px] text-[#dc2626]">{errors.submit}</p> : null}
+            <CreateFormFooter isSubmitting={isSubmitting} onPrevious={() => router.push("/assignments")} />
+          </form>
+        </section>
       </main>
 
       <div className="fixed inset-x-0 bottom-0 px-[4px] pb-[4px] lg:hidden">

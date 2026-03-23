@@ -1,5 +1,5 @@
-import { AssignmentForm } from "@/components/create/AssignmentForm";
+import { CreateForm } from "@/components/assignment/create/CreateForm";
 
 export default function CreatePage() {
-  return <AssignmentForm />;
+  return <CreateForm />;
 }

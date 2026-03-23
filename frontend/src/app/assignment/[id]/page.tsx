@@ -1,4 +1,4 @@
-import { AssignmentPaperClient } from "@/components/assignment/AssignmentPaperClient";
+import { AssignmentPaperClient } from "@/components/assignment/paper/AssignmentPaperClient";
 
 type AssignmentPageProps = {
   params: Promise<{ id: string }>;

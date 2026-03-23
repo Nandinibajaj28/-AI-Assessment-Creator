@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
-import { AppChrome } from "@/components/common/AppChrome";
+import { AppShell } from "@/components/assignment/shared/AppShell";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -30,7 +30,7 @@ export default function RootLayout({
       suppressHydrationWarning
     >
       <body className="min-h-full flex flex-col">
-        <AppChrome>{children}</AppChrome>
+        <AppShell>{children}</AppShell>
       </body>
     </html>
   );

@@ -1,4 +1,4 @@
-import AssignmentCard from "./AssignmentCard";
+import AssignmentCard from "@/components/assignment/dashboard/AssignmentCard";
 
 type Assignment = {
   id: string;

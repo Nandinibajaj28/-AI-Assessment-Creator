@@ -1,6 +1,7 @@
+import { Badge } from "@/components/ui/Badge";
 import { Question } from "@/types/assignment";
 
-type QuestionItemProps = {
+type AssignmentQuestionItemProps = {
   question: Question;
   index: number;
 };
@@ -11,7 +12,7 @@ const DIFFICULTY_STYLES: Record<string, string> = {
   hard: "bg-[#fef2f2] text-[#b91c1c] border-[#fecaca]"
 };
 
-export function QuestionItem({ question, index }: QuestionItemProps) {
+export function AssignmentQuestionItem({ question, index }: AssignmentQuestionItemProps) {
   const difficultyKey = question.difficulty.toLowerCase();
   const badgeClass = DIFFICULTY_STYLES[difficultyKey] || DIFFICULTY_STYLES.easy;
 
@@ -20,12 +21,12 @@ export function QuestionItem({ question, index }: QuestionItemProps) {
       <div className="flex flex-wrap items-center gap-[8px]">
         <span className="font-semibold text-[#202020]">{index}.</span>
         <span className="flex-1 text-[#2f2f2f]">{question.text}</span>
-        <span className={`inline-flex items-center rounded-full border px-[9px] py-[2px] text-[10px] font-semibold uppercase tracking-[0.08em] ${badgeClass}`}>
+        <Badge className={`border font-semibold uppercase tracking-[0.08em] ${badgeClass}`}>
           {question.difficulty}
-        </span>
-        <span className="inline-flex items-center rounded-full bg-[#f3f4f6] px-[9px] py-[2px] text-[10px] font-medium text-[#374151]">
+        </Badge>
+        <Badge className="bg-[#f3f4f6] text-[#374151]">
           {question.marks} mark{question.marks === 1 ? "" : "s"}
-        </span>
+        </Badge>
       </div>
 
       {Array.isArray(question.options) && question.options.length > 0 ? (

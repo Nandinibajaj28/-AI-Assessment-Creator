@@ -1,9 +1,9 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { AppLogo, BackIcon, BellIcon, MobileMenuIcon, UserAvatar } from "@/components/create/icons";
+import { AppLogo, BackIcon, BellIcon, MobileMenuIcon, UserAvatar } from "@/components/assignment/shared/AssignmentIcons";
 
-export function TopBar() {
+export function CreateFormHeader() {
   const router = useRouter();
 
   return (

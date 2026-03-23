@@ -3,14 +3,14 @@
 import { useMemo } from "react";
 import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
-import { Sidebar } from "@/components/common/Sidebar";
-import { DashboardHeader } from "@/components/dashboard/DashboardHeader";
+import { AssignmentSidebar } from "@/components/assignment/shared/AssignmentSidebar";
+import { MobileHeader } from "@/components/assignment/paper/MobileHeader";
 import { AssignmentResult, Question } from "@/types/assignment";
-import { useAssignmentStore } from "@/store/assignment.store";
-import { AnswerKey } from "./AnswerKey";
-import { ExamPaper } from "./ExamPaper";
+import { useAssignmentStore } from "@/store/useAssignmentStore";
+import { AnswerKey } from "@/components/assignment/paper/AnswerKey";
+import { ExamPaper } from "@/components/assignment/paper/ExamPaper";
 
-const PDFButton = dynamic(() => import("./PDFButton").then((mod) => mod.PDFButton), {
+const PDFButton = dynamic(() => import("@/components/assignment/paper/PDFButton").then((mod) => mod.PDFButton), {
   ssr: false,
 });
 
@@ -71,12 +71,12 @@ export function AssignmentOutputPage({
     <main className="min-h-screen bg-[#f2f2f2] p-[8px] md:p-[10px]">
       <div className="mx-auto flex max-w-[1180px] gap-[8px] md:min-h-[calc(100vh-20px)]">
         <div className="hidden md:block md:shrink-0">
-          <Sidebar />
+          <AssignmentSidebar />
         </div>
 
         <section className="relative flex-1 overflow-hidden rounded-[18px] bg-[#d9d9d9] shadow-[0_18px_40px_rgba(0,0,0,0.08)]">
           <div className="md:hidden">
-            <DashboardHeader />
+            <MobileHeader />
           </div>
 
           <div className="hidden md:block">

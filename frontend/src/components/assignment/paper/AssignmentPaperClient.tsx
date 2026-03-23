@@ -4,9 +4,9 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { getAssignment, getAssignments, regenerateAssignment } from "@/services/api";
 import { getSocket } from "@/lib/socket";
-import { useAssignmentStore } from "@/store/assignment.store";
+import { useAssignmentStore } from "@/store/useAssignmentStore";
 import { AssignmentDoneEvent, AssignmentResult } from "@/types/assignment";
-import { AssignmentOutputPage } from "./AssignmentOutputPage";
+import { AssignmentOutputPage } from "@/components/assignment/paper/AssignmentOutputPage";
 
 type AssignmentPaperClientProps = {
   id: string;

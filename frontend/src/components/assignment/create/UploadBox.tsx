@@ -1,7 +1,8 @@
 "use client";
 
+import { Button } from "@/components/ui/Button";
+import { UploadIcon } from "@/components/assignment/shared/AssignmentIcons";
 import { ChangeEvent, RefObject } from "react";
-import { UploadIcon } from "@/components/create/icons";
 
 type UploadBoxProps = {
   fileInputRef: RefObject<HTMLInputElement | null>;
@@ -20,13 +21,14 @@ export function UploadBox({ fileInputRef, onChange, fileName }: UploadBoxProps) 
           Choose a PDF or image file to generate grounded questions
         </p>
         <p className="mt-[6px] text-[10px] leading-none text-[#a0a0a0]">PDF, PNG, JPG, JPEG, WEBP up to 10MB</p>
-        <button
+        <Button
           type="button"
+          variant="secondary"
           onClick={() => fileInputRef.current?.click()}
           className="mt-[14px] inline-flex h-[30px] items-center justify-center rounded-full bg-[#f7f7f7] px-[18px] text-[11px] font-medium text-[#4b4b4b]"
         >
           Browse Files
-        </button>
+        </Button>
         <input
           ref={fileInputRef}
           type="file"
