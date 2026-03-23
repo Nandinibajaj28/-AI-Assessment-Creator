@@ -16,9 +16,10 @@ const FALLBACK_RESULT = {
       instruction: "Attempt all questions",
       questions: [
         {
-          text: "Explain Artificial Intelligence.",
+          text: "What fact is directly stated in the provided material?",
           difficulty: "easy" as const,
-          marks: 2
+          marks: 2,
+          sourceLine: "No source text was extracted from the uploaded material."
         }
       ]
     }
@@ -33,18 +34,44 @@ const worker = new Worker(
 
     try {
       const result = await processAssignmentGeneration(String(assignmentId), data);
+      const assignment = await Assignment.findById(String(assignmentId)).lean();
       console.log(`[Worker] Job completed for assignment ${assignmentId}`);
-      return { assignmentId, result };
+      return {
+        assignmentId,
+        result,
+        schoolName: assignment?.schoolName || "",
+        subjectName: assignment?.subjectName || "",
+        className: assignment?.className || "",
+        timeAllowed: assignment?.timeAllowed || ""
+      };
     } catch (error) {
-      console.error(
-        `[Worker] Unexpected error while processing assignment ${assignmentId}:`,
-        error instanceof Error ? error.message : String(error)
-      );
+      const message = error instanceof Error ? error.message : String(error);
+      console.error(`[Worker] Unexpected error while processing assignment ${assignmentId}:`, message);
+
+      if (message.toLowerCase().includes("text extraction failed")) {
+        await Assignment.findByIdAndUpdate(String(assignmentId), {
+          status: "failed",
+          errorMessage: message,
+          $unset: { result: 1 }
+        });
+
+        const assignment = await Assignment.findById(String(assignmentId)).lean();
+        return {
+          assignmentId,
+          errorMessage: message,
+          schoolName: assignment?.schoolName || "",
+          subjectName: assignment?.subjectName || "",
+          className: assignment?.className || "",
+          timeAllowed: assignment?.timeAllowed || ""
+        };
+      }
+
       console.log(`[Worker] Fallback used for assignment ${assignmentId}`);
 
       try {
         await Assignment.findByIdAndUpdate(String(assignmentId), {
           status: "completed",
+          errorMessage: null,
           result: FALLBACK_RESULT
         });
       } catch (dbError) {
@@ -55,7 +82,15 @@ const worker = new Worker(
       }
 
       console.log(`[Worker] Job completed for assignment ${assignmentId}`);
-      return { assignmentId, result: FALLBACK_RESULT };
+      const assignment = await Assignment.findById(String(assignmentId)).lean();
+      return {
+        assignmentId,
+        result: FALLBACK_RESULT,
+        schoolName: assignment?.schoolName || "",
+        subjectName: assignment?.subjectName || "",
+        className: assignment?.className || "",
+        timeAllowed: assignment?.timeAllowed || ""
+      };
     }
   },
   {

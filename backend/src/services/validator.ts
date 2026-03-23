@@ -10,6 +10,8 @@ export type GeneratedQuestion = {
   text: string;
   difficulty: Difficulty;
   marks: number;
+  sourceLine: string;
+  options?: string[];
 };
 
 export type GeneratedSection = {
@@ -111,6 +113,8 @@ export function validateStructure(data: unknown): asserts data is GeneratedAssig
       const text = question.text;
       const difficulty = question.difficulty;
       const marks = question.marks;
+      const sourceLine = question.sourceLine;
+      const options = question.options;
 
       if (typeof text !== "string" || text.trim().length === 0) {
         throw new Error(`Missing question.text at section ${sectionIndex} index ${questionIndex}`);
@@ -125,6 +129,28 @@ export function validateStructure(data: unknown): asserts data is GeneratedAssig
       if (typeof marks !== "number" || !Number.isFinite(marks) || marks <= 0) {
         throw new Error(`Invalid question.marks at section ${sectionIndex} index ${questionIndex}`);
       }
+
+      if (typeof sourceLine !== "string" || sourceLine.trim().length === 0) {
+        throw new Error(
+          `Missing question.sourceLine at section ${sectionIndex} index ${questionIndex}`
+        );
+      }
+
+      if (/multiple choice/i.test(title)) {
+        if (!Array.isArray(options) || options.length < 3) {
+          throw new Error(
+            `Invalid question.options at section ${sectionIndex} index ${questionIndex}`
+          );
+        }
+
+        options.forEach((option, optionIndex) => {
+          if (typeof option !== "string" || option.trim().length === 0) {
+            throw new Error(
+              `Invalid question option at section ${sectionIndex} index ${questionIndex} option ${optionIndex}`
+            );
+          }
+        });
+      }
     });
   });
 }
@@ -134,9 +160,7 @@ const normalizeSectionForType = (
   questionType: StrictQuestionType
 ): GeneratedSection => ({
   title: questionType.normalizedType,
-  instruction:
-    section?.instruction?.trim() ||
-    `Generate exactly ${questionType.count} ${questionType.normalizedType.toLowerCase()}.`,
+  instruction: section?.instruction?.trim() || "Attempt all questions",
   questions: [...(section?.questions ?? [])]
 });
 

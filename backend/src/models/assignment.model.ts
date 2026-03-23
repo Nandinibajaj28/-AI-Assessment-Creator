@@ -23,10 +23,11 @@ const assignmentSchema = new mongoose.Schema(
 
     status: {
       type: String,
-      enum: ["pending", "completed"],
+      enum: ["pending", "completed", "failed"],
       default: "pending"
     },
 
+    errorMessage: String,
     result: Object
   },
   { timestamps: true }
