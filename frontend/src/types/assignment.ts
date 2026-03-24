@@ -4,7 +4,6 @@ export type Question = {
   text: string;
   difficulty: Difficulty;
   marks: number;
-  sourceLine: string;
   options?: string[];
 };
 
@@ -60,3 +59,4 @@ export type AssignmentDoneEvent = {
   className: string;
   timeAllowed: string;
 };
+

@@ -39,9 +39,6 @@ export function AssignmentQuestionItem({ question, index }: AssignmentQuestionIt
         </ul>
       ) : null}
 
-      <p className="mt-[10px] rounded-[12px] bg-[#f5f7fb] px-[10px] py-[8px] text-[10px] leading-[1.5] text-[#516074] md:text-[11px]">
-        Source line: {question.sourceLine}
-      </p>
     </li>
   );
 }

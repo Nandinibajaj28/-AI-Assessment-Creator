@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { AppLogo, BackIcon, BellIcon, MobileMenuIcon, UserAvatar } from "@/components/assignment/shared/AssignmentIcons";
+import { AppLogo, BackIcon, BellIcon, MobileMenuIcon } from "@/components/assignment/shared/AssignmentIcons";
 
 export function CreateFormHeader() {
   const router = useRouter();
@@ -25,10 +25,6 @@ export function CreateFormHeader() {
           <button type="button" className="text-[#2b2b2b]" aria-label="Notifications">
             <BellIcon />
           </button>
-          <div className="flex items-center gap-[8px]">
-            <UserAvatar />
-            <span className="text-[12px] font-medium text-[#2a2a2a]">John Doe</span>
-          </div>
         </div>
       </header>
 
@@ -40,7 +36,6 @@ export function CreateFormHeader() {
               <BellIcon />
               <span className="absolute -right-[1px] top-0 h-[5px] w-[5px] rounded-full bg-[#ff6a3d]" />
             </button>
-            <UserAvatar size="sm" />
             <button type="button" className="text-[#4a4a4a]" aria-label="Open menu">
               <MobileMenuIcon />
             </button>

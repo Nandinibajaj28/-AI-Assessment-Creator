@@ -22,7 +22,7 @@ export default function EmptyState({ onCreate }: EmptyStateProps) {
             <path d="M10 4.167V15.833M4.167 10H15.833" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
           </svg>
         </span>
-        + Create Your First Assignment
+        Create Your First Assignment
       </button>
     </div>
   );

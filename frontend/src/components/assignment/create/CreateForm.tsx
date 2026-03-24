@@ -6,14 +6,14 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { CreateFormFooter } from "@/components/assignment/create/CreateFormFooter";
-import { CalendarIcon, PlusIcon } from "@/components/assignment/shared/AssignmentIcons";
+import { CalendarIcon } from "@/components/assignment/shared/AssignmentIcons";
 import { QuestionItem } from "@/components/assignment/create/QuestionItem";
 import { CreateSummary } from "@/components/assignment/create/CreateSummary";
 import { CreateFormHeader } from "@/components/assignment/create/CreateFormHeader";
 import { UploadBox } from "@/components/assignment/create/UploadBox";
 import { isValidDate, isSupportedUpload } from "@/lib/helpers";
 import { formatDateInput } from "@/lib/format";
-import { createAssignment } from "@/services/api";
+import { buildAssignmentTitle, createAssignment } from "@/services/api";
 import { useAssignmentStore } from "@/store/useAssignmentStore";
 import {
   AssignmentQuestionType,
@@ -52,6 +52,7 @@ const MAX_UPLOAD_SIZE = 10 * 1024 * 1024;
 export function CreateForm() {
   const router = useRouter();
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const dateInputRef = useRef<HTMLInputElement | null>(null);
   const { addAssignment, setAssignmentId, setResult } = useAssignmentStore();
 
   const [dueDate, setDueDate] = useState("");
@@ -101,6 +102,36 @@ export function CreateForm() {
     setDueDate(formatDateInput(value));
     setErrors((current) => ({ ...current, dueDate: undefined, submit: undefined }));
   };
+
+  const handleDatePickerChange = (value: string) => {
+    if (!value) {
+      setDueDate("");
+      return;
+    }
+
+    const [year, month, day] = value.split("-");
+    handleDateChange(`${day}${month}${year}`);
+  };
+
+  const handleOpenDatePicker = () => {
+    const input = dateInputRef.current;
+
+    if (!input) return;
+
+    if (typeof input.showPicker === "function") {
+      input.showPicker();
+      return;
+    }
+
+    input.click();
+  };
+
+  const calendarValue = useMemo(() => {
+    if (!isValidDate(dueDate)) return "";
+
+    const [day, month, year] = dueDate.split("-");
+    return `${year}-${month}-${day}`;
+  }, [dueDate]);
 
   const handleTypeChange = (id: string, type: string) => {
     setQuestionTypes((current) =>
@@ -234,7 +265,10 @@ export function CreateForm() {
       setAssignmentId(response.id);
       const createdAssignment: DashboardAssignment = {
         id: response.id,
-        title: payload.subjectName.trim() ? `Quiz on ${payload.subjectName.trim()}` : "Quiz on Electricity",
+        title: buildAssignmentTitle({
+          subjectName: payload.subjectName,
+          uploadedFileName: payload.uploadedFile?.name,
+        }),
         assignedOn: new Date().toISOString(),
         dueDate: payload.dueDate,
         status: "processing",
@@ -303,9 +337,23 @@ export function CreateForm() {
                 <label className="mb-[6px] block text-[12px] font-medium text-[#292929]">Due Date</label>
                 <div className="relative">
                   <Input type="text" inputMode="numeric" value={dueDate} onChange={(event) => handleDateChange(event.target.value)} placeholder={DATE_PLACEHOLDER} className="pl-[12px] pr-[34px]" />
-                  <span className="pointer-events-none absolute inset-y-0 right-[11px] flex items-center text-[#4d4d4d]">
+                  <input
+                    ref={dateInputRef}
+                    type="date"
+                    value={calendarValue}
+                    onChange={(event) => handleDatePickerChange(event.target.value)}
+                    className="pointer-events-none absolute right-[10px] top-1/2 h-0 w-0 opacity-0"
+                    tabIndex={-1}
+                    aria-hidden="true"
+                  />
+                  <button
+                    type="button"
+                    onClick={handleOpenDatePicker}
+                    className="absolute inset-y-0 right-[11px] flex items-center text-[#4d4d4d]"
+                    aria-label="Open due date calendar"
+                  >
                     <CalendarIcon />
-                  </span>
+                  </button>
                 </div>
                 {errors.dueDate ? <p className="mt-[5px] text-[10px] text-[#dc2626]">{errors.dueDate}</p> : null}
               </div>
@@ -335,10 +383,7 @@ export function CreateForm() {
 
                 {errors.questionTypes ? <p className="mt-[5px] text-[10px] text-[#dc2626]">{errors.questionTypes}</p> : null}
 
-                <Button type="button" variant="ghost" onClick={handleAddRow} className="mt-[10px] inline-flex items-center gap-[8px] text-[11px] font-medium text-[#2f2f2f]">
-                  <span className="flex h-[22px] w-[22px] items-center justify-center rounded-full bg-[#2f2f2f] text-white">
-                    <PlusIcon />
-                  </span>
+                <Button type="button" variant="ghost" onClick={handleAddRow} className="mt-[10px] inline-flex items-center text-[11px] font-medium text-[#2f2f2f]">
                   <span>Add Question Type</span>
                 </Button>
               </div>

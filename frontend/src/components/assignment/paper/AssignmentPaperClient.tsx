@@ -23,8 +23,7 @@ const hasStructuredSections = (result: AssignmentResult | null): result is Assig
         (question) =>
           typeof question.text === "string" &&
           typeof question.difficulty === "string" &&
-          typeof question.marks === "number" &&
-          typeof question.sourceLine === "string"
+          typeof question.marks === "number"
       )
   );
 };
@@ -52,7 +51,6 @@ const sanitizeAssignmentResult = (result: AssignmentResult | null): AssignmentRe
         .map((question) => ({
           ...question,
           text: cleanVisibleText(question.text),
-          sourceLine: cleanVisibleText(question.sourceLine),
           options: Array.isArray(question.options)
             ? question.options.map((option) => cleanVisibleText(option)).filter(Boolean)
             : undefined,
@@ -60,7 +58,6 @@ const sanitizeAssignmentResult = (result: AssignmentResult | null): AssignmentRe
         .filter(
           (question) =>
             question.text.length > 0 &&
-            question.sourceLine.length > 0 &&
             !containsForbiddenText(question.text)
         ),
     }))

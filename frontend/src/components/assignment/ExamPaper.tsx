@@ -1,6 +1,6 @@
 import { AssignmentResult } from "@/types/assignment";
-import { AnswerKey } from "@/components/assignment/paper/AnswerKey";
-import { SectionBlock } from "@/components/assignment/paper/SectionBlock";
+import { AnswerKey } from "./AnswerKey";
+import { SectionBlock } from "./SectionBlock";
 
 type ExamPaperProps = {
   result: AssignmentResult | null;
@@ -84,30 +84,18 @@ export function ExamPaper({
       </div>
 
       <p className="mt-[18px] text-[12px] font-medium text-[#2f2f2f] md:mt-[26px] md:text-[14px]">
-        All questions are compulsory unless stated otherwise.
+        All questions are compulsory .
       </p>
 
       <div className="mt-[22px] space-y-[4px] text-[12px] text-[#2d2d2d] md:mt-[24px] md:text-[14px]">
         <p>Name: _____________</p>
         <p>Roll Number: ________</p>
-        <p>Class: {className} Section: ________</p>
+        <p>Class: {className} , Section: ________</p>
       </div>
 
       {isLoading ? (
-        <div className="py-[52px] md:py-[72px]">
-          <div className="mx-auto max-w-[460px] rounded-[24px] border border-[#ece7df] bg-[linear-gradient(180deg,#fffaf4_0%,#ffffff_100%)] px-[24px] py-[24px] shadow-[0_18px_36px_rgba(148,101,42,0.08)]">
-            <div className="flex items-center justify-between gap-[16px]">
-              <h2 className="text-[16px] font-semibold tracking-[-0.03em] text-[#2f2a24] md:text-[18px]">
-                Generating paper
-              </h2>
-              <span className="text-[11px] font-medium uppercase tracking-[0.14em] text-[#b06a2f]">
-                In Progress
-              </span>
-            </div>
-            <div className="mt-[14px] h-[10px] overflow-hidden rounded-full bg-[#f3e2cf]">
-              <div className="h-full w-[38%] rounded-full bg-[linear-gradient(90deg,#c97329_0%,#efb36d_100%)] animate-pulse" />
-            </div>
-          </div>
+        <div className="py-[72px] text-center text-[14px] text-[#5d5d5d] md:text-[16px]">
+          Generating question paper...
         </div>
       ) : result ? (
         <>

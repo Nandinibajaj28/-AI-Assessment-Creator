@@ -1,3 +1,5 @@
+import "dotenv/config";
+import { GoogleGenAI } from "@google/genai";
 import pdfParse from "pdf-parse";
 import Tesseract from "tesseract.js";
 import { AssignmentInput, normalizeAssignmentConfig } from "./prompt.service";
@@ -18,18 +20,16 @@ const DEFAULT_FALLBACK_ASSIGNMENT: GeneratedAssignment = {
       instruction: "Attempt all questions",
       questions: [
         {
-          text: "Define the core concept related to the subject and provide one suitable example.",
+          text: "Explain one key concept stated in the extracted text with a suitable example.",
           difficulty: "easy",
-          marks: 2,
-          sourceLine: "Core concept from the selected subject"
+          marks: 2
         }
       ]
     }
   ]
 };
 
-const OLLAMA_URL = process.env.OLLAMA_URL || "http://127.0.0.1:11434/api/generate";
-const OLLAMA_MODEL = process.env.OLLAMA_MODEL || "llama3";
+const GEMINI_MODEL = process.env.GEMINI_MODEL || "gemini-3-flash-preview";
 const EXTRACTION_FAILURE_PREFIX = "Text extraction failed:";
 const FORBIDDEN_TEXT_PATTERNS = [
   /generate exactly/i,
@@ -44,13 +44,46 @@ const FORBIDDEN_TEXT_PATTERNS = [
 
 const toErrorMessage = (error: unknown) => (error instanceof Error ? error.message : String(error));
 
+const toDetailedErrorMessage = (error: unknown) => {
+  if (error instanceof Error) {
+    const errorWithCause = error as Error & { cause?: unknown };
+    const cause =
+      typeof errorWithCause.cause === "object" && errorWithCause.cause
+        ? JSON.stringify(errorWithCause.cause)
+        : errorWithCause.cause
+          ? String(errorWithCause.cause)
+          : "";
+
+    return cause ? `${error.message} | cause: ${cause}` : error.message;
+  }
+
+  return String(error);
+};
+
+const getGeminiClient = () => {
+  const apiKey = process.env.GEMINI_API_KEY?.trim();
+
+  if (!apiKey) {
+    throw new Error("GEMINI_API_KEY is not configured in the backend environment.");
+  }
+
+  return new GoogleGenAI({ apiKey });
+};
+
 const containsForbiddenText = (value: string) =>
   FORBIDDEN_TEXT_PATTERNS.some((pattern) => pattern.test(value));
 
 const cleanVisibleText = (value: string) =>
   value
     .split(/\r?\n/)
-    .filter((line) => !containsForbiddenText(line))
+    .filter((line) => {
+      const normalized = line.trim().toLowerCase();
+      return (
+        !containsForbiddenText(line) &&
+        normalized !== "source line:" &&
+        !normalized.startsWith("source line:")
+      );
+    })
     .join(" ")
     .replace(/\s+/g, " ")
     .trim();
@@ -228,16 +261,14 @@ const sanitizeQuestion = (
   const raw = question as Record<string, unknown>;
   const text = cleanVisibleText(String(raw.text ?? ""));
   const difficulty = String(raw.difficulty ?? "").trim().toLowerCase();
-  const sourceLine =
-    cleanVisibleText(String(raw.sourceLine ?? raw.source_line ?? raw.source ?? text)) ||
-    "Relevant concept from the selected subject";
+  const sourceLine = cleanVisibleText(String(raw.sourceLine ?? raw.source_line ?? raw.source ?? ""));
   const options = normalizeOptions(raw.options);
 
   if (!text || containsForbiddenText(text)) {
     return null;
   }
 
-  if (!isQuestionRelatedToContext(text, sourceLine, sourceLines, fullContext)) {
+  if (!isQuestionRelatedToContext(text, sourceLine || text, sourceLines, fullContext)) {
     return null;
   }
 
@@ -253,7 +284,6 @@ const sanitizeQuestion = (
     text,
     difficulty: difficulty as GeneratedQuestion["difficulty"],
     marks,
-    sourceLine,
     ...(options ? { options } : {})
   };
 };
@@ -311,7 +341,7 @@ const buildDistractors = (correctLine: string, sourceLines: string[]) => {
     .map((line) => (line.length > 96 ? `${line.slice(0, 93).trim()}...` : line));
 
   while (distractors.length < 2) {
-    distractors.push("This statement is not supported by the uploaded material.");
+    distractors.push("This statement is not supported by the extracted text.");
   }
 
   return [correctLine, ...distractors].slice(0, 4);
@@ -334,19 +364,17 @@ const buildFallbackQuestion = ({
 
   if (/multiple choice/i.test(sectionTitle)) {
     return {
-      text: "Which of the following statements is directly supported by the uploaded material?",
+      text: `Which statement best matches the extracted term or fact: ${clippedLine}?`,
       difficulty: buildDifficulty(index),
       marks,
-      sourceLine,
       options: buildDistractors(clippedLine, sourceLines)
     };
   }
 
   return {
-    text: `Explain ${clippedLine} in a concise academic answer.`,
+    text: `Explain the extracted concept or fact: ${clippedLine}.`,
     difficulty: buildDifficulty(index),
-    marks,
-    sourceLine
+    marks
   };
 };
 
@@ -364,13 +392,12 @@ const buildGroundedFallbackAssignment = (
       : [
         cleanVisibleText(
           [
-            data.subjectName && `Subject: ${data.subjectName}`,
             data.additionalInfo && `Additional Info: ${data.additionalInfo}`,
             data.instructions && `Instruction: ${data.instructions}`
           ]
             .filter(Boolean)
             .join(" | ")
-        ) || `${data.subjectName || "Selected subject"} subject academic questions`
+        ) || "Key terms and facts extracted from the document"
       ];
 
   if (config.questionTypes.length === 0) {
@@ -498,40 +525,9 @@ const extractDocumentText = async (data: AssignmentGenerationInput) => {
   }
 };
 
-const extractTextFromOpenAIResponse = (response: any) => {
-  if (typeof response?.output_text === "string") {
-    return response.output_text.trim();
-  }
-
-  if (!Array.isArray(response?.output)) {
-    return "";
-  }
-
-  const textParts = response.output.flatMap((item: any) =>
-    Array.isArray(item?.content)
-      ? item.content
-        .map((contentItem: any) => {
-          if (typeof contentItem?.text === "string") {
-            return contentItem.text.trim();
-          }
-
-          if (typeof contentItem?.output_text === "string") {
-            return contentItem.output_text.trim();
-          }
-
-          return "";
-        })
-        .filter(Boolean)
-      : []
-  );
-
-  return textParts.join("\n").trim();
-};
-
 const buildStrictPrompt = (data: AssignmentGenerationInput, limitedText: string) => {
   const config = normalizeAssignmentConfig(data);
-  const fallbackSubject = data.subjectName || "the selected subject";
-  const contextBlock = limitedText || `[EMPTY_CONTEXT] Fallback to subject: ${fallbackSubject}`;
+  const contextBlock = limitedText || "[EMPTY_CONTEXT]";
 
   return `
 You are an expert school exam paper setter.
@@ -542,9 +538,11 @@ ${contextBlock}
 RULES:
 
 - Generate questions ONLY from this context
+- Use the exact extracted PDF terms, facts, definitions, processes, names, and keywords present in the context
 - Do NOT use external knowledge
 - Do NOT generate unrelated topics
-- If context is empty -> fallback to subject
+- Do NOT refer to "uploaded material", "subject", "chapter", or similar meta wording inside questions
+- Do NOT write template phrases like "related to uploaded material" or "for the subject"
 - Follow question count exactly
 - Keep section titles, marks, and difficulty aligned to the request
 - For Multiple Choice Questions, include at least 3 options
@@ -561,7 +559,6 @@ Return ONLY valid JSON:
           "text": "Actual academic question",
           "difficulty": "easy",
           "marks": 2,
-          "sourceLine": "relevant concept",
           "options": ["A", "B", "C", "D"]
         }
       ]
@@ -571,7 +568,8 @@ Return ONLY valid JSON:
 
 Additional requirements:
 - Every question must be grounded in the context block above
-- Every "sourceLine" must be copied from the provided context
+- Turn extracted terms into natural exam questions instead of mentioning the source itself
+- Prefer wording that asks about the extracted concept directly
 - Create exactly ${config.questionTypes.length} sections
 - Each section title must exactly match the requested question type label
 - Each section instruction must be exactly "Attempt all questions"
@@ -589,57 +587,18 @@ Additional requirements:
 `.trim();
 };
 
-const callOpenAI = async (prompt: string) => {
-  const response = await fetch("https://api.openai.com/v1/responses", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${process.env.OPENAI_API_KEY}`
-    },
-    body: JSON.stringify({
-      model: process.env.OPENAI_MODEL || "gpt-4.1-mini",
-      input: [
-        {
-          role: "user",
-          content: [
-            {
-              type: "input_text",
-              text: prompt
-            }
-          ]
-        }
-      ]
-    })
-  });
+const callGemini = async (prompt: string) => {
+  try {
+    const ai = getGeminiClient();
+    const response = await ai.models.generateContent({
+      model: GEMINI_MODEL,
+      contents: prompt
+    });
 
-  if (!response.ok) {
-    throw new Error(`OpenAI request failed with status ${response.status}`);
+    return typeof response.text === "string" ? response.text.trim() : "";
+  } catch (error) {
+    throw new Error(`Gemini fetch failed: ${toDetailedErrorMessage(error)}`);
   }
-
-  const result = await response.json();
-  return extractTextFromOpenAIResponse(result);
-};
-
-const callOllama = async (prompt: string) => {
-  const response = await fetch(OLLAMA_URL, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json"
-    },
-    body: JSON.stringify({
-      model: OLLAMA_MODEL,
-      prompt,
-      stream: false,
-      format: "json"
-    })
-  });
-
-  if (!response.ok) {
-    throw new Error(`Ollama request failed with status ${response.status}`);
-  }
-
-  const result = (await response.json()) as { response?: string };
-  return typeof result.response === "string" ? result.response.trim() : "";
 };
 
 const tryParseAssignment = (
@@ -668,6 +627,11 @@ export const generateQuestions = async (data: unknown): Promise<GeneratedAssignm
   const DEBUG_MODE = false;
 
   try {
+    console.log("[AI] Provider selection", {
+      provider: "gemini",
+      model: GEMINI_MODEL
+    });
+
     console.log("[AI] Starting grounded generation pipeline", {
       subject: input.subjectName,
       mimeType: uploadedDocument?.mimeType || "none"
@@ -716,14 +680,14 @@ export const generateQuestions = async (data: unknown): Promise<GeneratedAssignm
         extractedText ||
         input.additionalInfo ||
         input.instructions ||
-        `${input.subjectName || "Selected subject"} subject academic questions`
+        ""
     };
 
     const limitedText = (preparedInput.extractedText || "").slice(0, 2000);
     const sourceLines = extractGroundingLines(limitedText);
 
     const prompt = buildStrictPrompt(preparedInput, limitedText);
-    const rawResponse = process.env.OPENAI_API_KEY ? await callOpenAI(prompt) : await callOllama(prompt);
+    const rawResponse = await callGemini(prompt);
 
     console.log("[AI DEBUG]", {
       extractedText: preparedInput.extractedText,

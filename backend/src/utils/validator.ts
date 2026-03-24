@@ -10,7 +10,6 @@ export type GeneratedQuestion = {
   text: string;
   difficulty: Difficulty;
   marks: number;
-  sourceLine: string;
   options?: string[];
 };
 
@@ -113,7 +112,6 @@ export function validateStructure(data: unknown): asserts data is GeneratedAssig
       const text = question.text;
       const difficulty = question.difficulty;
       const marks = question.marks;
-      const sourceLine = question.sourceLine;
       const options = question.options;
 
       if (typeof text !== "string" || text.trim().length === 0) {
@@ -128,10 +126,6 @@ export function validateStructure(data: unknown): asserts data is GeneratedAssig
 
       if (typeof marks !== "number" || !Number.isFinite(marks) || marks <= 0) {
         throw new Error(`Invalid question.marks at section ${sectionIndex} index ${questionIndex}`);
-      }
-
-      if (sourceLine != null && typeof sourceLine !== "string") {
-        throw new Error(`Invalid question.sourceLine at section ${sectionIndex} index ${questionIndex}`);
       }
 
       if (/multiple choice/i.test(title)) {

@@ -19,8 +19,7 @@ const FALLBACK_RESULT = {
         {
           text: "What fact is directly stated in the provided material?",
           difficulty: "easy" as const,
-          marks: 2,
-          sourceLine: "No source text was extracted from the uploaded material."
+          marks: 2
         }
       ]
     }

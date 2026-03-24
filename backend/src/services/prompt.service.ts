@@ -171,8 +171,8 @@ Bad question examples:
 Good question examples:
 - "What does the chapter state about photosynthesis?"
 - "Which statement from the source is correct?"
-- "According to the uploaded material, what is the definition of osmosis?"
-- "What fact is directly supported by the source line about the water cycle?"
+- "What is the definition of osmosis stated in the text?"
+- "Which process is described in the water cycle passage?"
 `.trim();
 };
 
@@ -220,7 +220,7 @@ export const buildPrompt = (data: AssignmentInput): string => {
 
   return `
 You are an expert exam question paper generator with validation discipline.
-Your job is to generate student questions using ONLY the uploaded content and the selected subject.
+Your job is to generate student questions using ONLY the extracted document content.
 Do not use outside knowledge.
 Do not invent facts.
 Every question must be directly supported by the source text.
@@ -244,14 +244,14 @@ Before finalizing each question, ensure that it maps to a source sentence or lin
 If a question cannot be supported by a source sentence or line, exclude it.
 Use the class level and requested difficulty to control wording, but do not add unsupported material.
 For Multiple Choice Questions, include at least 3 options.
-For each question include the supporting source line in the field "source_line".
+Use exact extracted terms from the document and avoid meta wording like "uploaded material" or "subject" inside the question text.
 
 Question paper requirements for the AI only:
 - Create exactly ${config.questionTypes.length} sections.
 - Each section title must exactly match the requested question type label.
 - Each section instruction must be exactly "Attempt all questions".
 - Put only real questions inside each section.
-- Each question must contain: text, difficulty, marks, source_line.
+- Each question must contain: text, difficulty, marks.
 - Difficulty must be exactly one of: easy, medium, hard.
 - If the section is "Multiple Choice Questions", each question must also contain an "options" array with at least 3 strings.
 - Do not add extra sections.
@@ -273,8 +273,6 @@ Quality guidance:
 ${buildQualityExamples(config.subjectName)}
 
 Grounding rules:
-- The value in "source_line" must copy the supporting line or sentence exactly from the source text.
-- Do not use a source line that is not present in the provided material.
 - Prefer one clear fact per question.
 - Keep wording exam-ready, but keep the fact grounded.
 - If the source is too weak for a question, omit that question instead of guessing.

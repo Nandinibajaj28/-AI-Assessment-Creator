@@ -1,5 +1,5 @@
 import axios from "axios";
-import { CreateAssignmentPayload, DashboardAssignment } from "@/types/assignment";
+import { AssignmentResult, CreateAssignmentPayload, DashboardAssignment } from "@/types/assignment";
 import { AuthResponse } from "@/types/auth";
 import { useAuthStore } from "@/store/useAuthStore";
 import { useAssignmentStore } from "@/store/useAssignmentStore";
@@ -24,6 +24,21 @@ type RawAssignment = {
   dueAt?: string;
   status?: string;
   subjectName?: string;
+  uploadedFile?: {
+    name?: string;
+  };
+};
+
+export type AssignmentDetailResponse = {
+  _id?: string;
+  id?: string | number;
+  schoolName?: string;
+  subjectName?: string;
+  className?: string;
+  timeAllowed?: string;
+  status?: string;
+  errorMessage?: string;
+  result?: AssignmentResult | null;
 };
 
 export const api = axios.create({
@@ -59,12 +74,77 @@ api.interceptors.response.use(
   }
 );
 
-function normalizeAssignment(item: RawAssignment, index: number): DashboardAssignment {
-  const subjectName = item.subjectName?.trim();
+const NOISY_FILENAME_WORDS = new Set([
+  "assignment",
+  "chapter",
+  "chap",
+  "class",
+  "document",
+  "lesson",
+  "notes",
+  "pdf",
+  "scan",
+  "scanned",
+  "worksheet",
+]);
 
+const toTitleCase = (value: string) => value.replace(/\b\w/g, (char) => char.toUpperCase());
+
+const extractTopicFromFileName = (fileName?: string) => {
+  if (!fileName) return "";
+
+  const normalized = fileName
+    .replace(/\.[^.]+$/, "")
+    .replace(/[_-]+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+
+  if (!normalized) return "";
+
+  const filtered = normalized
+    .split(" ")
+    .filter((part) => {
+      const lower = part.toLowerCase();
+      return lower && !NOISY_FILENAME_WORDS.has(lower) && !/^\d+$/.test(lower);
+    })
+    .join(" ")
+    .trim();
+
+  return toTitleCase(filtered || normalized);
+};
+
+export function buildAssignmentTitle({
+  title,
+  name,
+  subjectName,
+  uploadedFileName,
+}: {
+  title?: string;
+  name?: string;
+  subjectName?: string;
+  uploadedFileName?: string;
+}) {
+  const explicitTitle = title?.trim() || name?.trim();
+  if (explicitTitle) return explicitTitle;
+
+  const subject = subjectName?.trim();
+  if (subject) return `Quiz on ${subject}`;
+
+  const topic = extractTopicFromFileName(uploadedFileName);
+  if (topic) return `Quiz on ${topic}`;
+
+  return "Untitled Assignment";
+}
+
+function normalizeAssignment(item: RawAssignment, index: number): DashboardAssignment {
   return {
     id: String(item._id ?? item.id ?? index),
-    title: item.title?.trim() || item.name?.trim() || (subjectName ? `Quiz on ${subjectName}` : "Quiz on Electricity"),
+    title: buildAssignmentTitle({
+      title: item.title,
+      name: item.name,
+      subjectName: item.subjectName,
+      uploadedFileName: item.uploadedFile?.name,
+    }),
     assignedOn: item.assignedOn ?? item.assigned_at ?? item.createdAt ?? "",
     dueDate: item.dueDate ?? item.due_date ?? item.dueAt ?? "",
     status: item.status,
@@ -97,8 +177,8 @@ export async function regenerateAssignment(id: string): Promise<CreateAssignment
   return response.data;
 }
 
-export async function getAssignment(id: string): Promise<any> {
-  const response = await api.get(`/api/assignment/${id}`);
+export async function getAssignment(id: string): Promise<AssignmentDetailResponse> {
+  const response = await api.get<AssignmentDetailResponse>(`/api/assignment/${id}`);
   return response.data;
 }
 
