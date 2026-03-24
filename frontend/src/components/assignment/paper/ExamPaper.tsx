@@ -117,6 +117,7 @@ export function ExamPaper({
                 key={`${section.title}-${index}`}
                 section={section}
                 startIndex={getQuestionStartIndex(result.sections, index)}
+                sectionIndex={index}
               />
             ))}
           </div>
