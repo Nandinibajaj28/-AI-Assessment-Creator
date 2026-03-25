@@ -10,6 +10,7 @@ export type GeneratedQuestion = {
   text: string;
   difficulty: Difficulty;
   marks: number;
+  answer: string;
   options?: string[];
 };
 
@@ -112,6 +113,7 @@ export function validateStructure(data: unknown): asserts data is GeneratedAssig
       const text = question.text;
       const difficulty = question.difficulty;
       const marks = question.marks;
+      const answer = question.answer;
       const options = question.options;
 
       if (typeof text !== "string" || text.trim().length === 0) {
@@ -126,6 +128,10 @@ export function validateStructure(data: unknown): asserts data is GeneratedAssig
 
       if (typeof marks !== "number" || !Number.isFinite(marks) || marks <= 0) {
         throw new Error(`Invalid question.marks at section ${sectionIndex} index ${questionIndex}`);
+      }
+
+      if (typeof answer !== "string" || answer.trim().length === 0) {
+        throw new Error(`Invalid question.answer at section ${sectionIndex} index ${questionIndex}`);
       }
 
       if (/multiple choice/i.test(title)) {
@@ -227,6 +233,12 @@ export const validateGeneratedAssignment = (
       if (!DIFFICULTIES.includes(question.difficulty)) {
         throw new Error(
           `Difficulty mismatch for "${questionType.normalizedType}" question ${index + 1}`
+        );
+      }
+
+      if (typeof question.answer !== "string" || question.answer.trim().length === 0) {
+        throw new Error(
+          `Answer missing for "${questionType.normalizedType}" question ${index + 1}`
         );
       }
     });

@@ -34,7 +34,7 @@ export function ExamPaper({
   return (
     <article
       id="pdf-content"
-      className="rounded-[24px] bg-white px-[18px] py-[22px] shadow-[0_14px_34px_rgba(17,24,39,0.08)] md:px-[48px] md:py-[44px]"
+      className="bg-white px-[18px] py-[22px] md:px-[48px] md:py-[44px]"
     >
       <header className="text-center">
         <input
@@ -42,10 +42,10 @@ export function ExamPaper({
           value={schoolName}
           onChange={(e) => setSchoolName(e.target.value)}
           placeholder="School Name"
-          className="w-full border-none bg-transparent text-center text-[15px] font-semibold tracking-[-0.04em] text-[#2d2d2d] outline-none focus:ring-1 focus:ring-[#ff7a1b]/20 md:text-[22px]"
+          className="w-full border-none bg-transparent text-center text-[18px] font-bold tracking-[-0.04em] text-[#1f1f1f] outline-none focus:ring-1 focus:ring-[#ff7a1b]/20 md:text-[28px]"
           aria-label="School Name"
         />
-        <div className="mt-[6px] flex items-center justify-center gap-1 text-[14px] font-semibold text-[#3a3a3a] md:text-[19px]">
+        <div className="mt-[8px] flex items-center justify-center gap-1 text-[15px] font-semibold text-[#2f2f2f] md:text-[21px]">
           <span>Subject:</span>
           <input
             type="text"
@@ -56,7 +56,7 @@ export function ExamPaper({
             aria-label="Subject"
           />
         </div>
-        <div className="mt-[2px] flex items-center justify-center gap-1 text-[14px] font-semibold text-[#3a3a3a] md:text-[19px]">
+        <div className="mt-[4px] flex items-center justify-center gap-1 text-[15px] font-semibold text-[#2f2f2f] md:text-[21px]">
           <span>Class:</span>
           <input
             type="text"
@@ -69,7 +69,7 @@ export function ExamPaper({
         </div>
       </header>
 
-      <div className="mt-[24px] flex items-center justify-between text-[12px] font-medium text-[#232323] md:mt-[34px] md:text-[15px]">
+      <div className="mt-[24px] flex items-center justify-between text-[13px] font-medium text-[#232323] md:mt-[34px] md:text-[16px]">
         <div className="flex items-center gap-1">
           <span>Time Allowed:</span>
           <input
@@ -83,11 +83,11 @@ export function ExamPaper({
         <p>Maximum Marks: {maximumMarks}</p>
       </div>
 
-      <p className="mt-[18px] text-[12px] font-medium text-[#2f2f2f] md:mt-[26px] md:text-[14px]">
+      <p className="mt-[18px] text-[13px] font-medium text-[#2f2f2f] md:mt-[26px] md:text-[15px]">
         All questions are compulsory unless stated otherwise.
       </p>
 
-      <div className="mt-[22px] space-y-[4px] text-[12px] text-[#2d2d2d] md:mt-[24px] md:text-[14px]">
+      <div className="mt-[22px] space-y-[4px] text-[13px] text-[#2d2d2d] md:mt-[24px] md:text-[15px]">
         <p>Name: _____________</p>
         <p>Roll Number: ________</p>
         <p>Class: {className} Section: ________</p>
@@ -122,7 +122,7 @@ export function ExamPaper({
             ))}
           </div>
 
-          <p className="mt-[26px] text-[12px] font-semibold text-[#303030] md:mt-[32px] md:text-[14px]">
+          <p className="mt-[26px] text-[13px] font-semibold text-[#303030] md:mt-[32px] md:text-[15px]">
             End of Question Paper
           </p>
 

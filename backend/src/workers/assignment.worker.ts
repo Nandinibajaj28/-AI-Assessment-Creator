@@ -19,7 +19,8 @@ const FALLBACK_RESULT = {
         {
           text: "What fact is directly stated in the provided material?",
           difficulty: "easy" as const,
-          marks: 2
+          marks: 2,
+          answer: "State the fact exactly as it appears in the provided material."
         }
       ]
     }

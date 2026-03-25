@@ -166,8 +166,6 @@ function PlusSparkleIcon() {
     <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
       <path d="M7 3.2V10.8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
       <path d="M3.2 7H10.8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-      <path d="M2.35 2.1L2.65 2.95L3.5 3.25L2.65 3.55L2.35 4.4L2.05 3.55L1.2 3.25L2.05 2.95L2.35 2.1Z" fill="currentColor" />
-      <path d="M10.75 1.7L11 2.4L11.7 2.65L11 2.9L10.75 3.6L10.5 2.9L9.8 2.65L10.5 2.4L10.75 1.7Z" fill="currentColor" />
     </svg>
   );
 }

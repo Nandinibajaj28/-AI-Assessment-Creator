@@ -235,10 +235,13 @@ function buildAnswerKey(result: AssignmentResult | null): AnswerKeyItem[] {
 }
 
 function createAnswerKeyText(question: Question, sectionTitle: string, position: number) {
-  const difficultyLabel = getDifficultyLabel(question.difficulty);
-  const source = question.sourceLine.replace(/\s+/g, " ").trim();
+  const answer = (question as Question & { answer?: string }).answer?.trim();
+  if (answer) {
+    return `${sectionTitle} ${position}: ${answer}`;
+  }
 
-  return `${sectionTitle} ${position}: ${difficultyLabel} answer should be supported by the source line \"${source}\" and fit within ${question.marks} mark${question.marks === 1 ? "" : "s"}.`;
+  const difficultyLabel = getDifficultyLabel(question.difficulty);
+  return `${sectionTitle} ${position}: ${difficultyLabel} answer should stay grounded in the extracted document text and fit within ${question.marks} mark${question.marks === 1 ? "" : "s"}.`;
 }
 
 function getDifficultyLabel(difficulty: string) {
